@@ -1,0 +1,24 @@
+{
+  "name": "jupiter-process-values",
+  "version": "1.0.0",
+  "description": "Node module to read process values from shared memory on the jupiter platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@de-lx-gitlabew.jumo.net:jupiter/webservices/packages/jupiter-process-values.git"
+  },
+  "keywords": [
+    "process",
+    "values",
+    "node",
+    "module"
+  ],
+  "author": "Marcus Geicke",
+  "license": "ISC",
+  "devDependencies": {
+    "node-gyp": "^9.4.0"
+  }
+}
