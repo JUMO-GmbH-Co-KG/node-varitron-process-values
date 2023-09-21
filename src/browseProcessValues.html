@@ -1,0 +1,26 @@
+<script type="text/javascript">
+    RED.nodes.registerType('browse-process-values', {
+        category: 'function',
+        color: '#a6bbcf',
+        defaults: {
+            name: { value: "browse-process-values" }
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "file.svg",
+        label: function () {
+            return this.name || "browse-process-values";
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="browse-process-values">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="browse-process-values">
+    <p>This nodes lets you browse the process values on a device of the Jupiter series from JUMO</p>
+</script>

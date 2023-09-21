@@ -2,7 +2,6 @@
   "name": "jupiter-process-values",
   "version": "1.0.0",
   "description": "Node module to read process values from shared memory on the jupiter platform",
-  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -14,11 +13,24 @@
     "process",
     "values",
     "node",
-    "module"
+    "module",
+    "node-red"
   ],
+  "node-red": {
+    "nodes": {
+      "browse-process-values": "src/browseProcessValues.js",
+      "read-process-values": "src/readProcessValues.js",
+      "write-process-values": "src/writeProcessValues.js"
+    }
+  },
   "author": "Marcus Geicke",
   "license": "ISC",
   "devDependencies": {
-    "node-gyp": "^9.4.0"
+    "node-gyp": "^9.4.0",
+    "node-red": "^3.1.0",
+    "node-red-node-test-helper": "^0.3.2"
+  },
+  "dependencies": {
+    "dbus-next": "^0.10.2"
   }
 }
