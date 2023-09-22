@@ -9,6 +9,7 @@
     "type": "git",
     "url": "git@de-lx-gitlabew.jumo.net:jupiter/webservices/packages/jupiter-process-values.git"
   },
+  "type": "module",
   "keywords": [
     "process",
     "values",
@@ -16,19 +17,10 @@
     "module",
     "node-red"
   ],
-  "node-red": {
-    "nodes": {
-      "browse-process-values": "src/browseProcessValues.js",
-      "read-process-values": "src/readProcessValues.js",
-      "write-process-values": "src/writeProcessValues.js"
-    }
-  },
   "author": "Marcus Geicke",
   "license": "ISC",
   "devDependencies": {
-    "node-gyp": "^9.4.0",
-    "node-red": "^3.1.0",
-    "node-red-node-test-helper": "^0.3.2"
+    "node-gyp": "^9.4.0"
   },
   "dependencies": {
     "dbus-next": "^0.10.2"

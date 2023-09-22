@@ -1,6 +1,5 @@
-'use strict';
 
-const formatData = function (data) {
+export function formatData(data) {
     if (data === undefined || data === null || data.length === 0) {
         // set data to an empty array, if dbus reply is empty
         return [];
@@ -20,7 +19,7 @@ const formatData = function (data) {
     return [data];
 };
 
-const parse = async function (result) {
+export async function parse(result) {
     if (result && result.value) {
         try {
             // schema of the jupiter dbus response
@@ -39,5 +38,3 @@ const parse = async function (result) {
     }
     return undefined;
 };
-
-module.exports.parse = parse;

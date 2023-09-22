@@ -1,8 +1,7 @@
-'use strict';
 
-const dbusGateway = require('./dbusGateway.js');
+import { dbusGateway } from './dbusGateway.js';
 
-const systemInformationManager = async function (method, params) {
+export async function systemInformationManager(method, params) {
     const serviceDescription = {
         serviceName: 'SystemInformationManager',
         objectPath: '/Information',
@@ -17,7 +16,7 @@ const systemInformationManager = async function (method, params) {
     }
 };
 
-const getRegisteredProvidersList = async function (language, providerType) {
+export async function getRegisteredProvidersList(language, providerType) {
     const method = 'getRegisteredProvidersList';
     const params = [providerType, language];
 
@@ -28,7 +27,7 @@ const getRegisteredProvidersList = async function (language, providerType) {
     }
 };
 
-const getListOfInstances = async function (modulename, language) {
+export async function getListOfInstances(modulename, language) {
     const method = 'getListOfInstances';
     const params = ['node-red', language];
     const serviceDescription = {
@@ -46,7 +45,7 @@ const getListOfInstances = async function (modulename, language) {
     }
 };
 
-const getProcessDataDescription = async function (modulename, instancename, language) {
+export async function getProcessDataDescription(modulename, instancename, language) {
     const method = 'getProcessDataDescription';
     const params = [instancename, language];
     const serviceDescription = {
@@ -62,10 +61,4 @@ const getProcessDataDescription = async function (modulename, instancename, lang
     } catch (err) {
         throw err;
     }
-};
-
-module.exports = {
-    getRegisteredProvidersList,
-    getListOfInstances,
-    getProcessDataDescription,
 };

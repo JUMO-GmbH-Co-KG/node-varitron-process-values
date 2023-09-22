@@ -1,14 +1,15 @@
-'use strict';
 
-const dbus = require('dbus-next');
-const dbusReply = require('./dbusReply.js');
+//const dbus = require('dbus-next');
+import dbus from 'dbus-next';
+import { parse } from './dbusReply.js';
 
 const dBusServicePrefix = 'de.jupiter.';
 const defaultDBusName = 'session';
 //const dBusTimeout = 120 * 1000;
 
-let staticDBusReference = null;
-const getBus = function () {
+let staticDBusReference;
+
+function getBus() {
     if (!staticDBusReference) {
         const dBusName = (() => {
             const envDBusName = process.env.DBUS_USE;
@@ -35,7 +36,7 @@ const defaultServiceDescription = Object.freeze({
     params: [],
 });
 
-const callMethod = async function (serviceDescription) {
+export async function dbusGateway(serviceDescription) {
     const description = Object.assign({}, defaultServiceDescription, serviceDescription);
 
     const bus = getBus();
@@ -51,9 +52,9 @@ const callMethod = async function (serviceDescription) {
         }
 
         const response = await iface[description.method](...description.params);
-        return await dbusReply.parse(response);
+        return await parse(response);
     } catch (err) {
-        err.message += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
+        err += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
         throw err;
     }
 };
@@ -66,7 +67,7 @@ const defaultSignalDescription = Object.freeze({
     signal: '',
 });
 
-const attachSignal = async function (signalDescription, eventhandler) {
+export async function attachSignal(signalDescription) {
     const description = Object.assign({}, defaultSignalDescription, signalDescription);
 
     const bus = getBus();
@@ -77,12 +78,12 @@ const attachSignal = async function (signalDescription, eventhandler) {
 
         iface.on(description.signal, eventhandler);
     } catch (err) {
-        err.message += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
+        err += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
         throw err;
     }
 };
 
-const detachSignal = async function (signalDescription, eventhandler) {
+export async function detachSignal(signalDescription) {
     const description = Object.assign({}, defaultSignalDescription, signalDescription);
 
     const bus = getBus();
@@ -93,11 +94,7 @@ const detachSignal = async function (signalDescription, eventhandler) {
 
         iface.removeListener(description.signal, eventhandler);
     } catch (err) {
-        err.message += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
+        err += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
         throw err;
     }
 };
-
-module.exports = callMethod;
-module.exports.attachSignal = attachSignal;
-module.exports.detachSignal = detachSignal;
