@@ -12,8 +12,6 @@ export async function read(processValueUrl) {
 
     let buffer;
 
-
-
     // double buffered shared memory
     //const size = 2 * LengthSharedMemory + OffsetManagementBuffer; //748
     const doubleBuffer = processDescription.doubleBuffer;

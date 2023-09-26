@@ -37,7 +37,7 @@ public:
 void shared_memory::init(Napi::Env env, Napi::Object &exports)
 {
     Napi::Function func = DefineClass(env, "shared_memory", {
-                                                                // InstanceMethod("write", &shared_memory::writeData, napi_enumerable),
+                                                                InstanceMethod("write", &shared_memory::writeData, napi_enumerable),
                                                                 // InstanceMethod("read", &shared_memory::readString, napi_enumerable),
                                                                 InstanceMethod("readBuffer", &shared_memory::readBuffer, napi_enumerable),
                                                                 // InstanceAccessor("data", &shared_memory::readString, &shared_memory::setString, napi_enumerable),
@@ -129,27 +129,33 @@ shared_memory::shared_memory(const Napi::CallbackInfo &info) : ObjectWrap(info)
     Value().DefineProperty(Napi::PropertyDescriptor::Value("id", Napi::Number::From(info.Env(), key), napi_enumerable));
 }
 
-// void shared_memory::writeData(const Napi::CallbackInfo &info) {
-//     CHECK_ARGS(napi_tools::string | napi_tools::buffer);
-//     std::vector<char> data;
-//     if (info[0].IsBuffer()) {
-//         auto buf = info[0].As<Napi::Buffer<char >>();
-//         data = std::vector<char>(buf.Data(), buf.Data() + buf.Length());
-//     } else {
-//         std::string string = info[0].ToString();
-//         data = std::vector<char>(string.begin(), string.end());
+void shared_memory::writeData(const Napi::CallbackInfo &info)
+{
+    // CHECK_ARGS(napi_tools::string | napi_tools::buffer);
+    std::vector<char> data;
+    if (info[0].IsBuffer())
+    {
+        auto buf = info[0].As<Napi::Buffer<char>>();
+        data = std::vector<char>(buf.Data(), buf.Data() + buf.Length());
+    }
+    else
+    {
+        std::string string = info[0].ToString();
+        data = std::vector<char>(string.begin(), string.end());
 
-//         if (string.size() < this->size) {
-//             this->buffer[string.size()] = '\0';
-//         }
-//     }
+        if (string.size() < this->size)
+        {
+            this->buffer[string.size()] = '\0';
+        }
+    }
 
-//     if (data.size() > this->size) {
-//         throw Napi::Error::New(info.Env(), "Could not write to the buffer: The input is bigger than the buffer size");
-//     }
+    if (data.size() > this->size)
+    {
+        throw Napi::Error::New(info.Env(), "Could not write to the buffer: The input is bigger than the buffer size");
+    }
 
-//     memcpy(this->buffer, data.data(), data.size());
-// }
+    memcpy(this->buffer, data.data(), data.size());
+}
 
 // Napi::Value shared_memory::readString(const Napi::CallbackInfo &info) {
 //     std::string res(std::min(strlen(this->buffer), this->size), '\0');
