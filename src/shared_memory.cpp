@@ -106,7 +106,7 @@ shared_memory::shared_memory(const Napi::CallbackInfo &info) : ObjectWrap(info)
     else
     {
         // int id = shmget(key, size, SHM_R | SHM_W);
-        int id = shm_open(key, size, SHM_R);
+        int id = shm_open((const char *)key, size, SHM_R);
         std::cout << "(native) shmId " << id << " " << errno << endl;
         if (id < 0)
         {

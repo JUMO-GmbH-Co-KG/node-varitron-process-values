@@ -1,12 +1,42 @@
 export function getModuleName(processValueUrl) {
 
-    //@todo implement function
-    return processValueUrl;
+    var parts = processValueUrl.split("#");
+    var substring = parts[1];
+    return substring;
 
 }
 
 export function getInstanceName(processValueUrl) {
 
-    //@todo implement function
-    return processValueUrl;
+    var parts = processValueUrl.split("#");
+    var substring = parts[3];
+    return substring;
+}
+
+export function getObjectName(processValueUrl) {
+    var parts = processValueUrl.split("#");
+    var substring = parts[2];
+    return substring;
+}
+
+export function getObjectFromUrl(processValueUrl) {
+    var parts = processValueUrl.split("#");
+    var moduleName = parts[1];
+    var objectName = parts[2];
+    var instanceName = parts[3];
+    var parameterUrl = parts[4];
+
+    parameterUrl = parameterUrl.replace(/\//g, '.value.');
+    parameterUrl = 'value.' + parameterUrl;
+
+    const obj = {
+        "moduleName": moduleName,
+        "objectName": objectName,
+        "instanceName": instanceName,
+        "parameterUrl": parameterUrl
+    }
+
+    return obj;
+
+
 }

@@ -1,14 +1,18 @@
-import { getProcessDataDescription } from './systemInformationManager';
-import { getModuleName, getInstanceName } from "./processValueUrl";
-import { native } from './importShm';
+import { getProcessDataDescription } from './systemInformationManager.js';
+import { getModuleName, getInstanceName, getObjectName, getObjectFromUrl } from "./processValueUrl.js";
+//import { native } from './build/Release/shared_memory';
 
 export async function read(processValueUrl) {
 
     const moduleName = getModuleName(processValueUrl);
     const instanceName = getInstanceName(processValueUrl);
+    const objectName = getObjectName(processValueUrl);
 
-    const processDescription = await getProcessDataDescription(moduleName, instanceName, 'us_EN');
+    const parameter = getObjectFromUrl(processValueUrl);
+    const processDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
 
+    const object = Object.byString(processDescription, parameter.parameterUrl);
+    var offset = object.offsetSharedMemory;
 
     let buffer;
 
@@ -30,7 +34,9 @@ export async function read(processValueUrl) {
     console.log('attaching to shm...');
 
     try {
-        const memory = new native.shared_memory(shmKey, size, false, false);
+
+        //const memory = new native.shared_memory(shmKey, size, false, false);
+
         // Read the data into a buffer
         const buf = memory.buffer;
         const seqlock = buf.readUInt32LE(8);
@@ -67,3 +73,18 @@ export async function read(processValueUrl) {
         return {};
     }
 };
+
+Object.byString = function (o, s) {
+    s = s.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
+    s = s.replace(/^\./, '');           // strip a leading dot
+    var a = s.split('.');
+    for (var i = 0, n = a.length; i < n; ++i) {
+        var k = a[i];
+        if (k in o) {
+            o = o[k];
+        } else {
+            return;
+        }
+    }
+    return o;
+}

@@ -19,7 +19,7 @@ export function formatData(data) {
     return [data];
 };
 
-export async function parse(result) {
+export function parse(result) {
     if (result && result.value) {
         try {
             // schema of the jupiter dbus response

@@ -6,14 +6,11 @@ export async function getProviderList() {
     try {
         const processdata = await getRegisteredProvidersList('us_EN', 'ProcessData');
         for (let pdata of processdata) {
-            if (pdata.objectName === 'ProcessData') {
-
-                modules.push(pdata.moduleName);
-
-            }
+            modules.push({ "moduleName": pdata.moduleName, "objectName": pdata.objectName });
         }
     } catch (e) {
         console.log('cant get RegisteredProviderList.' + e);
+        return Promise.reject();
     }
     for (let mod of modules) {
         let instances = [];
@@ -22,128 +19,94 @@ export async function getProviderList() {
             "instances": []
         }
         try {
-            const instance = await getListOfInstances(mod, 'us_EN');
+            const instance = await getListOfInstances(mod.moduleName, mod.objectName, 'us_EN');
             instances.push(instance);
         } catch (e) {
             console.log('cant get list of instances for: ' + e);
+            return Promise.reject();
         }
         for (let instance of instances) {
             try {
                 for (let i = 0; i < instance.length; i++) {
 
-                    if (Object.hasOwn(instance[i], 'substructure')) {
+                    async function findInstance(obj) {
+                        if (Object.hasOwn(obj, 'substructure')) {
+                            for (let i = 0; i < obj.substructure.length; i++) {
+                                await findInstance(obj.substructure[i]);
+                            }
+                        } else {
+                            const moduleName = obj.moduleName;
+                            const instanceName = obj.instanceName;
+                            const objectName = obj.objectName;
+                            const value = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
 
-                        for (let j = 0; j < instance[i].substructure.length; j++) {
-                            const moduleName = instance[i].substructure[j].moduleName;
-                            const instanceName = instance[i].substructure[j].instanceName;
-                            const value = await getProcessDataDescription(moduleName, instanceName, 'us_EN');
+                            let values = await createObjectHierarchy(value, 'offsetSharedMemory', moduleName, instanceName, objectName);
 
-                            let values = findObjectsWithProperty(value, 'offsetSharedMemory', [])
-
-                            let object = { "name": instanceName, "value": values };
-
-
-                            module.instances.push(object);
-
+                            let object = { "name": instanceName, "values": values };
+                            module.instances.push(object)
                         }
-
-                    } else {
-                        const moduleName = instance[i].moduleName;
-                        const instanceName = instance[i].instanceName;
-                        const value = await getProcessDataDescription(moduleName, instanceName, 'us_EN');
-
-                        let values = findObjectsWithProperty(value, 'offsetSharedMemory', [])
-
-                        let object = { "name": instanceName, "value": values };
-
-                        module.instances.push(object);
-                    }
-
+                    };
+                    await findInstance(instance[i]);
                 }
 
             } catch (e) {
                 console.log('cant get ProcessDescription for: ' + e);
+                return Promise.reject();
             }
         }
         pvalues.push(module);
-
     }
-
     return Promise.resolve(pvalues);
-
-}
-async function parseProviderList() {
-
 }
 
-// export function getObjectPaths(obj, parentPath = '') {
-//     const paths = [];
 
-//     for (const key in obj) {
-//         if (obj.hasOwnProperty(key)) {
-//             const value = obj[key];
-//             const currentPath = parentPath ? `${parentPath}.${key}` : key;
 
-//             if (typeof value === 'object' && !Array.isArray(value)) {
-//                 // If the current value is an object, recursively call the function
-//                 paths.push(currentPath);
-//                 const nestedPaths = getObjectPaths(value, currentPath);
-//                 paths.push(...nestedPaths);
-//             }
-//         }
-//     }
+async function createObjectHierarchy(obj, propName, moduleName, instanceName, objectName) {
+    const hierarchy = {};
 
-//     return paths;
-// }
+    function addToHierarchy(path, objToAdd) {
+        let currentLevel = hierarchy;
+        path.forEach((key, index) => {
+            if (!currentLevel[key]) {
+                currentLevel[key] = index === path.length - 1 ? objToAdd : {};
+            }
+            currentLevel = currentLevel[key];
+        });
+    }
 
-export function getObjectPaths(obj, parentPath = '', modulname, instancename) {
-    const paths = [];
-    for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            const value = obj[key];
-            let currentPath = parentPath ? `${parentPath}.${key}` : key;
+    function traverseObject(obj, currentPath) {
+        for (let key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                let newPath = currentPath.concat(key);
+                const value = obj[key];
 
-            if (typeof value === 'object' && !Array.isArray(value)) {
-                // If the current value is an object, recursively call the function
-                paths.push('Processdata#' + modulname + '#ProcessData#' + instancename + '#' + currentPath);
-                const nestedPaths = getObjectPaths(value, currentPath, modulname, instancename);
-                paths.push(...nestedPaths);
+                if (typeof value === 'object') {
+                    // Recursively traverse nested objects
+                    traverseObject(value, newPath);
+                } else if (key === propName) {
+                    // If the property name matches, add the object to the hierarchy
+                    let path = newPath.slice(0, -1).join('.');
+                    path = path.replace(/value\./g, '');
+                    path = path.replace(/\./g, '/');
+                    path = path.replace(/\[\d+\]/g, '#');
+                    newPath = newPath.slice(0, -1);
+                    const filteredArray = newPath.filter(item => item !== 'value');
+                    const unit = Object.hasOwn(obj, 'measurementRangeAttributes') ? obj.measurementRangeAttributes[0].unitText.POSIX : '';
+                    addToHierarchy(filteredArray, {
+                        name: newPath[newPath.length - 1],
+                        path: 'ProcessData#' + moduleName + '#' + objectName + '#' + instanceName + '#' + path,
+                        type: obj.type,
+                        readOnly: obj.readOnly,
+                        unit: unit
+
+                    });
+                }
             }
         }
     }
 
-    // Find the maximum path length
-    const maxLength = Math.max(...paths.map(path => path.split('.').length));
+    traverseObject(obj, []);
 
-    // Filter out paths with shorter lengths
-    const filteredPaths = paths.filter(path => path.split('.').length === maxLength);
-
-
-
-    return filteredPaths;
+    return Promise.resolve(hierarchy);
 }
 
-function findObjectsWithProperty(obj, propName, path = []) {
-    let results = [];
-
-    for (let key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            let currentPath = path.concat(key);
-            let value = obj[key];
-
-            if (typeof value === 'object') {
-                // Recursively search nested objects
-                results = results.concat(findObjectsWithProperty(value, propName, currentPath));
-            } else if (key === propName) {
-                // If the property name matches, store the path of the current object
-                results.push({
-                    name: currentPath[currentPath.length - 2],
-                    path: currentPath.slice(0, -1).join('.'),
-                    type: obj.type
-                });
-            }
-        }
-    }
-
-    return results;
-}

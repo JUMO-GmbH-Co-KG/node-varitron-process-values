@@ -38,24 +38,27 @@ const defaultServiceDescription = Object.freeze({
 
 export async function dbusGateway(serviceDescription) {
     const description = Object.assign({}, defaultServiceDescription, serviceDescription);
-
     const bus = getBus();
+    //return Promise.resolve([]);
 
     try {
         const obj = await bus.getProxyObject(description.servicePrefix + description.serviceName, description.objectPath);
         const iface = obj.getInterface(description.interfaceName);
 
         if (typeof iface[description.method] !== 'function') {
-            throw new Error(
+            const err = new Error(
                 `No function '${description.method}' in ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}`
             );
+            return Promise.reject(err);
         }
 
         const response = await iface[description.method](...description.params);
-        return await parse(response);
+        bus.disconnect();
+        staticDBusReference = null;
+        return Promise.resolve(parse(response));
     } catch (err) {
         err += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
-        throw err;
+        return Promise.reject(err);
     }
 };
 

@@ -9,56 +9,40 @@ export async function systemInformationManager(method, params) {
         method,
         params,
     };
-    try {
-        return await dbusGateway(serviceDescription);
-    } catch (err) {
-        throw err;
-    }
+    return dbusGateway(serviceDescription);
 };
 
 export async function getRegisteredProvidersList(language, providerType) {
     const method = 'getRegisteredProvidersList';
     const params = [providerType, language];
 
-    try {
-        return await systemInformationManager(method, params);
-    } catch (err) {
-        throw err;
-    }
+    return systemInformationManager(method, params);
 };
 
-export async function getListOfInstances(modulename, language) {
+export async function getListOfInstances(modulename, objectpath, language) {
     const method = 'getListOfInstances';
     const params = ['node-red', language];
     const serviceDescription = {
         serviceName: modulename,
-        objectPath: '/ProcessData',
+        objectPath: '/' + objectpath,
         interfaceName: 'Interface.ProcessDecription',
         method,
         params,
     };
 
-    try {
-        return await dbusGateway(serviceDescription);
-    } catch (err) {
-        throw err;
-    }
+    return dbusGateway(serviceDescription);
 };
 
-export async function getProcessDataDescription(modulename, instancename, language) {
+export async function getProcessDataDescription(moduleName, instanceName, objectName, language) {
     const method = 'getProcessDataDescription';
-    const params = [instancename, language];
+    const params = [instanceName, language];
     const serviceDescription = {
-        serviceName: modulename,
-        objectPath: '/ProcessData',
+        serviceName: moduleName,
+        objectPath: '/' + objectName,
         interfaceName: 'Interface.ProcessDecription',
         method,
         params,
     };
 
-    try {
-        return await dbusGateway(serviceDescription);
-    } catch (err) {
-        throw err;
-    }
+    return dbusGateway(serviceDescription);
 };

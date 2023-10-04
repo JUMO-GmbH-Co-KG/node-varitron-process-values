@@ -23,6 +23,7 @@
     "node-gyp": "^9.4.0"
   },
   "dependencies": {
-    "dbus-next": "^0.10.2"
+    "dbus-next": "^0.10.2",
+    "node-addon-api": "^7.0.0"
   }
 }

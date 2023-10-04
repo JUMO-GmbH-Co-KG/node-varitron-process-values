@@ -8,7 +8,8 @@
 /**
  * The shared memory node wrapper class
  */
-class shared_memory : public Napi::ObjectWrap<shared_memory> {
+class shared_memory : public Napi::ObjectWrap<shared_memory>
+{
 public:
     /**
      * Initialize the class
@@ -46,7 +47,7 @@ public:
     //  *
     //  * @param info the callback info
     //  */
-    // void writeData(const Napi::CallbackInfo &info);
+    void writeData(const Napi::CallbackInfo &info);
 
     // /**
     //  * Copy a string to the memory block
@@ -101,4 +102,4 @@ private:
     std::shared_ptr<extra_info> extraInfo;
 };
 
-#endif //SHARED_MEMORY_SHARED_MEMORY_HPP
+#endif // SHARED_MEMORY_SHARED_MEMORY_HPP
