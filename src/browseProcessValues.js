@@ -88,7 +88,7 @@ async function createObjectHierarchy(obj, propName, moduleName, instanceName, ob
                     let path = newPath.slice(0, -1).join('.');
                     path = path.replace(/value\./g, '');
                     path = path.replace(/\./g, '/');
-                    path = path.replace(/\[\d+\]/g, '#');
+                    path = path.replace(/\[(\d+)\]/g, '#value[$1]');
                     newPath = newPath.slice(0, -1);
                     const filteredArray = newPath.filter(item => item !== 'value');
                     const unit = Object.hasOwn(obj, 'measurementRangeAttributes') ? obj.measurementRangeAttributes[0].unitText.POSIX : '';
