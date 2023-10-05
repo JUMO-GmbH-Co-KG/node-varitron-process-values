@@ -151,15 +151,15 @@ Napi::Value shared_memory::readBuffer(const Napi::CallbackInfo &info)
     if (doublebuffer)
     {
         bool bRepetitionRequired = true;
-        // ck_sequenz lock lesen
+        // ck_sequenz lock read
         auto m_version = ck_sequence_read_begin(&pManagmentBuffer->seqlock);
 
         while (bRepetitionRequired)
         {
-            // wert lesen
+            // read value
             memcpy(buf.Data(), this->buffer, this->size);
 
-            // ck_sequenz noch mal lesen - wenn verändert noch mal von vorn
+            // read ck_sequenz again - if true read again
             bRepetitionRequired = ck_sequence_read_retry(&pManagmentBuffer->seqlock, m_version);
         }
         return buf.ToObject();
