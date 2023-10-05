@@ -92,8 +92,17 @@ export async function read(processValueUrl) {
         else if (object.type == 'Boolean') {
 
         }
-        else if (object.type == 'Double') {
+        else if (object.type == 'Bit') {
             value = buf.readDoubleLE(offsetObject + offset);
+        }
+        else if (object.type == 'String') {
+
+        }
+        else if (object.type == 'Selection') {
+
+        }
+        else if (object.type == 'Selector') {
+
         }
 
         const result = {
