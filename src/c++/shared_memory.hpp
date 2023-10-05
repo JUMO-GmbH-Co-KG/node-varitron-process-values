@@ -92,8 +92,6 @@ private:
      */
     class extra_info;
 
-    bool global;
-    bool isHost;
     // The size of the memory block
     size_t size;
     // A pointer to the memory block

@@ -9,7 +9,7 @@
                 "-fno-exceptions"
             ],
             "sources": [
-                "src/shared_memory.cpp"
+                "src/c++/shared_memory.cpp"
             ],
             "include_dirs": [
                 "<!(node -p \"require('node-addon-api').include\")",

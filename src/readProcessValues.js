@@ -35,7 +35,7 @@ export async function read(processValueUrl) {
 
     try {
 
-        //const memory = new native.shared_memory(shmKey, size, false, false);
+        //const memory = new native.shared_memory(shmKey, size);
 
         // Read the data into a buffer
         const buf = memory.buffer;
