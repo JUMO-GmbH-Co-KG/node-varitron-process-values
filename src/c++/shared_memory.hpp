@@ -96,6 +96,7 @@ private:
     size_t size;
     // A pointer to the memory block
     char *buffer;
+    bool doublebuffer;
     // The extra info
     std::shared_ptr<extra_info> extraInfo;
 };

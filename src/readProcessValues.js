@@ -1,8 +1,11 @@
 import { getProcessDataDescription } from './systemInformationManager.js';
-import { getModuleName, getInstanceName, getObjectName, getObjectFromUrl } from "./processValueUrl.js";
+import { getModuleName, getInstanceName, getObjectName, getObjectFromUrl, byString } from "./processValueUrl.js";
 import { createHash } from 'crypto';
 import { statSync } from 'fs';
-//const shared_memory = require('./build/Release/shared_memory');
+
+import { shared_memory } from './importShm.js';
+
+
 
 export async function read(processValueUrl) {
 
@@ -13,7 +16,7 @@ export async function read(processValueUrl) {
     const parameter = getObjectFromUrl(processValueUrl);
     const processDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
 
-    const object = Object.byString(processDescription, parameter.parameterUrl);
+    const object = byString(processDescription, parameter.parameterUrl);
     var offsetObject = object.offsetSharedMemory;
 
     let buffer;
@@ -22,13 +25,13 @@ export async function read(processValueUrl) {
     // double buffered shared memory
     //const size = 2 * LengthSharedMemory + OffsetManagementBuffer; //748
     const doubleBuffer = processDescription.doubleBuffer;
-    const keyFromDescriptionJson = processDescription.key;
+    const keyFromDescription = processDescription.key;
     const LengthSharedMemory = processDescription.sizeOfSharedMemory;
     const size = doubleBuffer ? 2 * LengthSharedMemory + OffsetManagementBuffer : LengthSharedMemory;
-    console.log(doubleBuffer, keyFromDescriptionJson, LengthSharedMemory, size);
+    console.log(doubleBuffer, keyFromDescription, LengthSharedMemory, size);
 
     // get shmKey by key from description file
-    const shmKeyNumber = getShmKeyByDescriptionKey(keyFromDescriptionJson);
+    const shmKeyNumber = getShmKeyByDescriptionKey(keyFromDescription);
     const shmKeyFixed = shmKeyNumber == -1 ? 0x5118001d : shmKeyNumber;
     const shmKey = '0x' + shmKeyFixed.toString(16);
     console.log('byDescKey: ' + shmKey + (shmKeyNumber == -1 ? ' (fixed)' : ''));
@@ -37,7 +40,7 @@ export async function read(processValueUrl) {
 
     try {
 
-        const memory = new shared_memory(shmKey, size);
+        const memory = new shared_memory(shmKey, size, doubleBuffer);
 
         // Read the data into a buffer
         const buf = memory.buffer;
@@ -93,16 +96,19 @@ export async function read(processValueUrl) {
 
         }
         else if (object.type == 'Bit') {
-            value = buf.readDoubleLE(offsetObject + offset);
         }
-        else if (object.type == 'String') {
 
+        else if (object.type == 'String') {
+            let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
+            value = tmpbuffer.toString();
         }
         else if (object.type == 'Selection') {
-
+            let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
+            value = tmpbuffer.toString();
         }
         else if (object.type == 'Selector') {
-
+            let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
+            value = tmpbuffer.toString();
         }
 
         const result = {
@@ -119,27 +125,13 @@ export async function read(processValueUrl) {
 
         // const cpuTemp = `${buf.readDoubleLE(OffsetTemperatureCpuInternal + offset)} °C`;
 
-        return result;
+        return Promise.resolve(result);
     } catch (e) {
         console.error(e);
-        return {};
+        return Promise.reject();
     }
 };
 
-Object.byString = function (o, s) {
-    s = s.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
-    s = s.replace(/^\./, '');           // strip a leading dot
-    var a = s.split('.');
-    for (var i = 0, n = a.length; i < n; ++i) {
-        var k = a[i];
-        if (k in o) {
-            o = o[k];
-        } else {
-            return;
-        }
-    }
-    return o;
-}
 
 // reimplement the jupiter-qt way from a key of a description file to the unix shmKey
 const getShmKeyByDescriptionKey = (descKey) => {

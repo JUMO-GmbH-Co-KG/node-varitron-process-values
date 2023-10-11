@@ -7,13 +7,11 @@
  *
  * @author Eugen Wiens
  *
-*/
-
+ */
 
 #pragma once
 
 #include "SystemVSemaphoreBaseClass.hpp"
-
 
 class SystemVSemaphore : public SystemVSemaphoreBaseClass
 {
@@ -24,6 +22,3 @@ public:
     bool unlock(void) const;
     int getValue(void) const;
 };
-
-
-

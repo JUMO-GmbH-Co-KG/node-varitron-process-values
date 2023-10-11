@@ -84,6 +84,8 @@ shared_memory::shared_memory(const Napi::CallbackInfo &info) : ObjectWrap(info)
 
     auto key = static_cast<key_t>(std::stol(name, nullptr, 16));
 
+    doublebuffer = info[2].ToBoolean();
+
     int id = shmget(key, size, IPC_CREAT | IPC_EXCL | SHM_R | SHM_W);
     if (id < 0)
     {
@@ -144,7 +146,6 @@ void shared_memory::writeData(const Napi::CallbackInfo &info)
 Napi::Value shared_memory::readBuffer(const Napi::CallbackInfo &info)
 {
 
-    bool doublebuffer = info[0].ToBoolean();
     auto buf = Napi::Buffer<char>::New(info.Env(), this->size);
     ManagementBuffer *pManagmentBuffer = (ManagementBuffer *)buffer;
 
@@ -162,6 +163,7 @@ Napi::Value shared_memory::readBuffer(const Napi::CallbackInfo &info)
             // read ck_sequenz again - if true read again
             bRepetitionRequired = ck_sequence_read_retry(&pManagmentBuffer->seqlock, m_version);
         }
+        // return buffer
         return buf.ToObject();
     }
     else
@@ -173,6 +175,8 @@ Napi::Value shared_memory::readBuffer(const Napi::CallbackInfo &info)
         memcpy(buf.Data(), this->buffer, this->size);
 
         // semaphore unlock
+
+        // return buffer
         return buf.ToObject();
     }
 }

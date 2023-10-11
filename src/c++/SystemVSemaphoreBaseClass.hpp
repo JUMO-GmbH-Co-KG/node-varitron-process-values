@@ -1,20 +1,19 @@
 /*!
  * @file   SystemVSemaphoreBaseClass.hpp
  *
- * @brief  This Class wraps basic functionality of a System V Semaphore. Additionaly this module take care of the needed iNode to kreate a token key for the System V machnismes.
+ * @brief  This Class wraps basic functionality of a System V Semaphore. Additionally, this module takes care of the needed iNode to create a token key for the System V mechanisms.
  *
  * @date   22.09.15
  *
  * @author Eugen Wiens
  *
-*/
-
+ */
 
 #pragma once
 
 #include "SystemVKey.hpp"
 
-#include <QString>
+#include <string>
 #include <sys/types.h>
 
 class SystemVSemaphoreBaseClass
@@ -29,39 +28,38 @@ public:
         invalidObject
     };
 
-    explicit SystemVSemaphoreBaseClass(const QString& keyString,
+    explicit SystemVSemaphoreBaseClass(const std::string &keyString,
                                        const CreationType creationType,
                                        const int numberOfSemaphores,
-                                       SemaphoreOptions* const pSemaphoreOptions );
-    explicit SystemVSemaphoreBaseClass(const QString& keyString, const CreationType creationType );
-    SystemVSemaphoreBaseClass( const SystemVSemaphoreBaseClass& other ) = delete;
+                                       SemaphoreOptions *const pSemaphoreOptions);
+    explicit SystemVSemaphoreBaseClass(const std::string &keyString, const CreationType creationType);
+    SystemVSemaphoreBaseClass(const SystemVSemaphoreBaseClass &other) = delete;
 
     virtual ~SystemVSemaphoreBaseClass();
 
-    SystemVSemaphoreBaseClass& operator=( const SystemVSemaphoreBaseClass& other) = delete;
+    SystemVSemaphoreBaseClass &operator=(const SystemVSemaphoreBaseClass &other) = delete;
 
-    bool isValid( void ) const;
+    bool isValid() const;
     int getLastError() const;
-    QString getLastErrorAsString() const;
+    std::string getLastErrorAsString() const;
 
 protected:
-
     union semun
     {
         int val;
         struct semid_ds *buf;
-        ushort *array;
+        unsigned short *array;
     };
 
     using SemaphoreArguments = union semun;
     using SemaphoreArgumentsBuffer = struct semid_ds;
 
-    bool createSemaphore(const key_t& key, SemaphoreOptions* const pSemaphoreOptions);
-    bool attachToExistingSemaphore( const key_t& key );
-    key_t createKeyFromKeyString(void );
-    bool setSemaphoreOptions(const SemaphoreOptions semaphoreOptions, const bool acceptTryAgain = false ) const;
-    void deleteSemaphoreSet(void);
-    int getSemaphoreId(void) const;
+    bool createSemaphore(const key_t &key, SemaphoreOptions *const pSemaphoreOptions);
+    bool attachToExistingSemaphore(const key_t &key);
+    key_t createKeyFromKeyString();
+    bool setSemaphoreOptions(const SemaphoreOptions semaphoreOptions, const bool acceptTryAgain = false) const;
+    void deleteSemaphoreSet();
+    int getSemaphoreId() const;
 
 private:
     int getMaxRetries() const;
@@ -74,9 +72,4 @@ private:
     SystemVKey m_systemVKey;
 
     static SemaphoreOptions sm_defaultSemaphoreOption;
-
-
 };
-
-
-

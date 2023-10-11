@@ -1,40 +1,42 @@
 /*!
  * @file   SystemVKey.cpp
  *
- * @brief  This Class wraps creation of a System V key. Because the System V key are based on inodes,
- *         a file in temp folder is created if necessary.
+ * @brief  This Class wraps creation of a System V key. Because the System V keys are based on inodes,
+ *         a file in the temp folder is created if necessary.
  *
  * @date   04.05.16
  *
  * @author Eugen Wiens
  *
-*/
+ */
 
 #include "SystemVKey.hpp"
-#include "PropertyManagerConst.hpp"
 
-#include <QFile>
-#include <QDebug>
-#include <QDir>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <cstring>
+#include <iostream>
 
-
-SystemVKey::SystemVKey(const QString &keyString, const QChar &projectId)
+SystemVKey::SystemVKey(const std::string &keyString, const char projectId)
     : m_keyString(keyString), m_key(-1)
 {
-    QFile file( getKeyBasePath() + m_keyString );
+    std::string filePath = getKeyBasePath() + m_keyString;
 
-    if( false == file.exists() )
+    int fileDescriptor = open(filePath.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+
+    if (fileDescriptor == -1)
     {
-        if( false == file.open(QFile::WriteOnly) )
-        {
-            qCritical() << "Cannot open file: " << file.fileName();
-        }
-        file.close();
+        std::cerr << "Cannot open file: " << filePath << std::endl;
     }
-    m_key = ftok(qPrintable(file.fileName()), static_cast<int>(projectId.unicode()));
-    if( m_key == -1)
+    close(fileDescriptor);
+
+    m_key = ftok(filePath.c_str(), static_cast<int>(projectId));
+    if (m_key == -1)
     {
-        qCritical() << "Cannot create key ftok: " << strerror(errno);
+        std::cerr << "Cannot create key ftok: " << strerror(errno) << std::endl;
     }
 }
 
@@ -42,39 +44,38 @@ SystemVKey::~SystemVKey()
 {
 }
 
-key_t SystemVKey::getKey( void ) const
+key_t SystemVKey::getKey() const
 {
     return m_key;
 }
 
-QString SystemVKey::getKeyString() const
+std::string SystemVKey::getKeyString() const
 {
     return m_keyString;
 }
 
 void SystemVKey::cleanUpKey() const
 {
-    QFile file( getKeyBasePath() + m_keyString );
-    if( false == file.remove() )
+    std::string filePath = getKeyBasePath() + m_keyString;
+    if (unlink(filePath.c_str()) != 0)
     {
-        qCritical() << "Cannot remove file: " << file.fileName();
+        std::cerr << "Cannot remove file: " << filePath << std::endl;
     }
 }
 
-int SystemVKey::getInvalidKey()
+key_t SystemVKey::getInvalidKey()
 {
-    static const int invalidKey = -1;
+    static const key_t invalidKey = -1;
     return invalidKey;
 }
 
-const QString &SystemVKey::getKeyBasePath() const
+const std::string &SystemVKey::getKeyBasePath() const
 {
-    static const QString keyBasePath = PropertyManagerConst::getJupiterTemporaryFolderPath();
+    static const std::string keyBasePath = "/tmp/";
 
-    QDir dirRoot(QStringLiteral("/"));
-    if (dirRoot.mkpath(keyBasePath) == false)
+    if (mkdir(keyBasePath.c_str(), S_IRWXU) != 0 && errno != EEXIST)
     {
-        qWarning() << "Can not make directory:" << keyBasePath;
+        std::cerr << "Cannot create directory: " << keyBasePath << std::endl;
     }
 
     return keyBasePath;
