@@ -15,7 +15,8 @@ export async function getProviderList() {
     for (let mod of modules) {
         let instances = [];
         let module = {
-            "modulName": mod,
+            "moduleName": mod.moduleName,
+            "objectName": mod.objectName,
             "instances": []
         }
         try {

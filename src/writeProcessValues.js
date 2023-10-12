@@ -29,5 +29,85 @@ export async function write(processValueUrl, processValue) {
 
     console.log('attaching to shm...');
 
+    const keyForBufferLocking = doubleBuffer ? 'WriteLock' : 'BufferLock';
+    const readSemaphore = processDescription.key + 'Semaphore' + keyForBufferLocking;
+    try {
 
+        const memory = new native.shared_memory(shmKey, size, doubleBuffer, readSemaphore, 0);
+
+        // Read the data into a buffer
+        const buf = memory.buffer;
+
+
+        //const activeReadBuffer = buf.readUInt32LE(0);
+        const activeWriteBuffer = buf.readUInt32LE(4);
+        const offset = OffsetManagementBuffer + activeWriteBuffer * LengthSharedMemory;
+
+        let value;
+
+        // *          Momentan sind die folgenden Datentypen implementiert:
+        // *
+        // *          ShortInteger - signed short 16bit
+        // *          UnsignedShortInteger - unsigned short 16bit
+        // *          Integer - int 32bit
+        // *          UnsignedInteger - unsigned int 32 bit
+        // *          LongLong - signed long long 64bit
+        // *          UnsignedLongLong - unsigned long long 64bit
+        // *          Double - Gleitkommazahl mit doppelter Genauigkeit
+        // *          Float - Gleitkommazahl mit einfacher Genauigkeit
+        // *          Boolean - C++11 Typ bool
+        // *          Bit - ein Bit in einem Byte
+        // *          String - QString
+        // *          Selection - QString
+        // *          Selector - QString
+
+        if (object.type == 'ShortInteger') {
+            buf.writeInt16LE(processValue, offsetObject + offset);
+        }
+        else if (object.type == 'UnsignedShortInteger') {
+            buf.writeUInt16LE(processValue, offsetObject + offset);
+        }
+        else if (object.type == 'Integer') {
+            buf.writeInt32LE(processValue, offsetObject + offset);
+        }
+        else if (object.type == 'UnsignedInteger') {
+            buf.writeUInt32LE(processValue, offsetObject + offset);
+        }
+        else if (object.type == 'LongLong') {
+            buf.writeInt64LE(processValue, offsetObject + offset);
+        }
+        else if (object.type == 'UnsignedLongLong') {
+            buf.writeUInt64LE(processValue, offsetObject + offset);
+        }
+        else if (object.type == 'Double') {
+            buf.writeDoubleLE(processValue, offsetObject + offset);
+        }
+        else if (object.type == 'Float') {
+            buf.writeFloatLE(processValue, offsetObject + offset);
+        }
+        else if (object.type == 'Boolean') {
+            buf.writeInt32LE(processValue, offsetObject + offset);
+        }
+        else if (object.type == 'Bit') {
+            throw new Error('writing process values: unhandled type: Bit');
+        }
+        else if (object.type == 'String') {
+            buf.write(processValue, offsetObject + offset)
+        }
+        else if (object.type == 'Selection') {
+            buf.write(processValue, offsetObject + offset)
+        }
+        else if (object.type == 'Selector') {
+            buf.write(processValue, offsetObject + offset)
+        }
+
+        memory.write(buf);
+
+        return Promise.resolve();
+
+    } catch (e) {
+        console.error(e);
+        return Promise.reject();
+
+    }
 }

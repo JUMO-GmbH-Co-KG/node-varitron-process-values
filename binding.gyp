@@ -9,7 +9,10 @@
                 "-fno-exceptions"
             ],
             "sources": [
-                "src/c++/shared_memory.cpp"
+                "src/c++/shared_memory.cpp",
+                "src/c++/SystemVKey.cpp",
+                "src/c++/SystemVSemaphore.cpp",
+                "src/c++/SystemVSemaphoreBaseClass.cpp"
             ],
             "include_dirs": [
                 "<!(node -p \"require('node-addon-api').include\")",
@@ -21,7 +24,7 @@
                 "<!(node -p \"require('node-addon-api').gyp\")"
             ],
             "defines": [
-                "NAPI_CPP_EXCEPTIONS"
+                "NAPI_CPP_EXCEPTIONS", "DESKTOP_BUILD"
             ]
         }
     ]

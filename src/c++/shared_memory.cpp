@@ -55,7 +55,6 @@ void shared_memory::init(Napi::Env env, Napi::Object &exports)
                                                                 InstanceMethod("write", &shared_memory::writeData, napi_enumerable),
                                                                 // InstanceMethod("read", &shared_memory::readString, napi_enumerable),
                                                                 InstanceMethod("readBuffer", &shared_memory::readBuffer, napi_enumerable),
-                                                                // InstanceAccessor("data", &shared_memory::readString, &shared_memory::setString, napi_enumerable),
                                                                 InstanceAccessor("buffer", &shared_memory::readBuffer, &shared_memory::setBuffer, napi_enumerable),
                                                             });
 
@@ -66,12 +65,13 @@ void shared_memory::init(Napi::Env env, Napi::Object &exports)
     env.SetInstanceData<Napi::FunctionReference>(constructor);
 }
 
-shared_memory::shared_memory(const Napi::CallbackInfo &info) : ObjectWrap(info)
+shared_memory::shared_memory(const Napi::CallbackInfo &info)
+    : ObjectWrap(info), m_semaphoreLock(info[3].ToString().Utf8Value(), static_cast<SystemVSemaphoreBaseClass::CreationType>(info[4].ToNumber().Int32Value()))
 {
     // CHECK_ARGS(napi_tools::string, napi_tools::number);
     std::string name = info[0].ToString().Utf8Value();
 
-    size = info[1].ToNumber().Int64Value();
+    size = info[1].ToNumber().Int32Value();
     if (size <= 0)
     {
         throw Napi::TypeError::New(info.Env(), "The buffer size must be greater than zero");
@@ -86,7 +86,7 @@ shared_memory::shared_memory(const Napi::CallbackInfo &info) : ObjectWrap(info)
 
     doublebuffer = info[2].ToBoolean();
 
-    int id = shmget(key, size, IPC_CREAT | IPC_EXCL | SHM_R | SHM_W);
+    int id = shmget(key, size, SHM_R | SHM_W);
     if (id < 0)
     {
         throw Napi::Error::New(info.Env(), "Could not create the shared memory segment: " + getErrnoAsString());
@@ -114,6 +114,7 @@ void shared_memory::writeData(const Napi::CallbackInfo &info)
     auto buf = info[0].As<Napi::Buffer<char>>();
     bool doublebuffer = info[1].ToBoolean();
     data = std::vector<char>(buf.Data(), buf.Data() + buf.Length());
+    ManagementBuffer *pManagmentBuffer = (ManagementBuffer *)buffer;
 
     if (data.size() > this->size)
     {
@@ -122,30 +123,33 @@ void shared_memory::writeData(const Napi::CallbackInfo &info)
     if (doublebuffer)
     {
         // semaphore lock
+        m_semaphoreLock.lock();
 
-        //"write buffer" beschreiben
+        //"write buffer"
+        memcpy(this->buffer, data.data(), data.size());
 
         // swap A / B
+        std::swap(pManagmentBuffer->activeReadBuffer, pManagmentBuffer->activeWriteBuffer);
 
-        // ck_sequenz erhoehen
+        // ck_sequenz +1
 
         // semaphore unlock
     }
     else
     {
         // semaphore lock
+        m_semaphoreLock.lock();
 
         // write Value
+        memcpy(this->buffer, data.data(), data.size());
 
         // semaphore unlock
+        m_semaphoreLock.unlock();
     }
-
-    memcpy(this->buffer, data.data(), data.size());
 }
 
 Napi::Value shared_memory::readBuffer(const Napi::CallbackInfo &info)
 {
-
     auto buf = Napi::Buffer<char>::New(info.Env(), this->size);
     ManagementBuffer *pManagmentBuffer = (ManagementBuffer *)buffer;
 
@@ -170,11 +174,13 @@ Napi::Value shared_memory::readBuffer(const Napi::CallbackInfo &info)
     {
 
         // semaphore lock
+        m_semaphoreLock.lock();
 
         // read Value
         memcpy(buf.Data(), this->buffer, this->size);
 
         // semaphore unlock
+        m_semaphoreLock.unlock();
 
         // return buffer
         return buf.ToObject();

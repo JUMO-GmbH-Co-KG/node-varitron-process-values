@@ -1,9 +1,10 @@
-#ifndef SHARED_MEMORY_SHARED_MEMORY_HPP
-#define SHARED_MEMORY_SHARED_MEMORY_HPP
+#pragma once
 
 #include <memory>
 #include <string>
 #include <napi.h>
+
+#include "SystemVSemaphore.hpp"
 
 /**
  * The shared memory node wrapper class
@@ -99,6 +100,5 @@ private:
     bool doublebuffer;
     // The extra info
     std::shared_ptr<extra_info> extraInfo;
+    SystemVSemaphore m_semaphoreLock;
 };
-
-#endif // SHARED_MEMORY_SHARED_MEMORY_HPP
