@@ -1,9 +1,15 @@
-import { getModuleName, getInstanceName, getObjectName, getObjectFromUrl, byString } from "./processValueUrl.js";
 import { getProcessDataDescription } from './systemInformationManager.js';
+import { getModuleName, getInstanceName, getObjectName, getObjectFromUrl, byString } from "./processValueUrl.js";
+import { createHash } from 'crypto';
+import { statSync } from 'fs';
+
+import { native } from './importShm.js';
+import { isUtf8 } from 'buffer';
 
 
 export async function write(processValueUrl, processValue) {
 
+    // Parameter is a value
     const moduleName = getModuleName(processValueUrl);
     const instanceName = getInstanceName(processValueUrl);
     const objectName = getObjectName(processValueUrl);
@@ -12,7 +18,11 @@ export async function write(processValueUrl, processValue) {
     const processDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
 
     const object = byString(processDescription, parameter.parameterUrl);
+    if (object.readOnly) Promise.reject('This process value is readOnly');
     var offsetObject = object.offsetSharedMemory;
+    var offsetMetadata = object.offsetSharedMemory + object.relativeOffsetMetadata;
+    let buffer;
+
     const OffsetManagementBuffer = 12;
     // double buffered shared memory
     //const size = 2 * LengthSharedMemory + OffsetManagementBuffer; //748
@@ -20,6 +30,7 @@ export async function write(processValueUrl, processValue) {
     const keyFromDescription = processDescription.key;
     const LengthSharedMemory = processDescription.sizeOfSharedMemory;
     const size = doubleBuffer ? 2 * LengthSharedMemory + OffsetManagementBuffer : LengthSharedMemory;
+    console.log(doubleBuffer, keyFromDescription, LengthSharedMemory, size);
 
     // get shmKey by key from description file
     const shmKeyNumber = getShmKeyByDescriptionKey(keyFromDescription);
@@ -28,7 +39,6 @@ export async function write(processValueUrl, processValue) {
     console.log('byDescKey: ' + shmKey + (shmKeyNumber == -1 ? ' (fixed)' : ''));
 
     console.log('attaching to shm...');
-
     const keyForBufferLocking = doubleBuffer ? 'WriteLock' : 'BufferLock';
     const readSemaphore = processDescription.key + 'Semaphore' + keyForBufferLocking;
     try {
@@ -40,10 +50,9 @@ export async function write(processValueUrl, processValue) {
 
 
         //const activeReadBuffer = buf.readUInt32LE(0);
-        const activeWriteBuffer = buf.readUInt32LE(4);
-        const offset = OffsetManagementBuffer + activeWriteBuffer * LengthSharedMemory;
-
-        let value;
+        const activeWriteBuffer = doubleBuffer ? buf.readUInt32LE(4) : 0;
+        console.log(activeWriteBuffer);
+        const offset = doubleBuffer ? OffsetManagementBuffer + activeWriteBuffer * LengthSharedMemory : 0;
 
         // *          Momentan sind die folgenden Datentypen implementiert:
         // *
@@ -74,10 +83,10 @@ export async function write(processValueUrl, processValue) {
             buf.writeUInt32LE(processValue, offsetObject + offset);
         }
         else if (object.type == 'LongLong') {
-            buf.writeInt64LE(processValue, offsetObject + offset);
+            buf.writeBigInt64LE(processValue, offsetObject + offset);
         }
         else if (object.type == 'UnsignedLongLong') {
-            buf.writeUInt64LE(processValue, offsetObject + offset);
+            buf.writeUBigInt64LE(processValue, offsetObject + offset);
         }
         else if (object.type == 'Double') {
             buf.writeDoubleLE(processValue, offsetObject + offset);
@@ -111,3 +120,35 @@ export async function write(processValueUrl, processValue) {
 
     }
 }
+
+// reimplement the jupiter-qt way from a key of a description file to the unix shmKey
+const getShmKeyByDescriptionKey = (descKey) => {
+    const keyPrependixFromJupiterApplication = 'SharedMemory'; // this is useless - qt also prepends a string with sharedmemory
+    const pathForQtSharedMemory = '/tmp'; // this might not be the correct path for the device
+    const qtFilePrefix = 'qipc_sharedmemory_';
+
+    const descKeyLettersOnly = descKey.replace(/[^a-zA-Z]+/g, ''); // qt removes all but letters to be 'PlatformSafe'
+
+    const shasum = createHash('sha1');
+    shasum.update(descKey + keyPrependixFromJupiterApplication);
+    const shaOfKey = shasum.digest('hex');
+
+    // '/tmp/qipc_sharedmemory_SystemObserverSystemObserverdSharedMemorya513c557e8801418aebfbb0791721a60a59ea14b';
+    const path = `${pathForQtSharedMemory}/${qtFilePrefix}${descKeyLettersOnly}${keyPrependixFromJupiterApplication}${shaOfKey}`;
+    console.log('path: ' + path);
+
+    const pId = 81; // 'Q' <- Qt uses this
+    return ftok(path, pId);
+};
+
+// https://man7.org/linux/man-pages/man3/ftok.3.html
+// https://www.npmjs.com/package/ftok?activeTab=code
+function ftok(path, proj_id) {
+    try {
+        var stats = statSync(path);
+
+        return (stats.ino & 0xffff) | ((stats.dev & 0xff) << 16) | ((proj_id & 0xff) << 24);
+    } catch (error) {
+        return -1;
+    }
+};

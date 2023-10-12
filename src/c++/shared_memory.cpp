@@ -87,16 +87,18 @@ shared_memory::shared_memory(const Napi::CallbackInfo &info)
     doublebuffer = info[2].ToBoolean();
 
     int id = shmget(key, size, SHM_R | SHM_W);
+    std::cout << "(native) shmId " << id << " " << errno << endl;
     if (id < 0)
     {
-        throw Napi::Error::New(info.Env(), "Could not create the shared memory segment: " + getErrnoAsString());
+        throw Napi::Error::New(info.Env(), "Could not get the shared memory segment: " + getErrnoAsString());
     }
     else
     {
         extraInfo = std::make_shared<extra_info>(id);
     }
 
-    buffer = static_cast<char *>(shmat(id, nullptr, SHM_R | SHM_W));
+    buffer = static_cast<char *>(shmat(id, nullptr, 0));
+    std::cout << "(native) buffer " << static_cast<void *>(buffer) << " " << errno << endl;
     // if (reinterpret_cast<intptr_t>(buffer) <= 0) // https://stackoverflow.com/questions/573294/when-to-use-reinterpret-cast
     if (buffer == (char *)-1)
     {
@@ -134,6 +136,7 @@ void shared_memory::writeData(const Napi::CallbackInfo &info)
         // ck_sequenz +1
 
         // semaphore unlock
+        m_semaphoreLock.unlock();
     }
     else
     {
