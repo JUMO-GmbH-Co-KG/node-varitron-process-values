@@ -205,7 +205,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
             else if (object.type == 'UnsignedShortInteger') {
                 value = buf.readUInt16LE(offsetObject + offset);
@@ -214,7 +213,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
             else if (object.type == 'Integer') {
                 value = buf.readInt32LE(offsetObject + offset);
@@ -232,7 +230,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
             else if (object.type == 'LongLong') {
                 value = buf.readBigInt64LE(offsetObject + offset);
@@ -241,7 +238,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
             else if (object.type == 'UnsignedLongLong') {
                 value = buf.readBigUInt64LE(offsetObject + offset);
@@ -250,7 +246,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
             else if (object.type == 'Double') {
                 value = buf.readDoubleLE(offsetObject + offset);
@@ -259,7 +254,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
             else if (object.type == 'Float') {
                 value = buf.readFloatLE(offsetObject + offset);
@@ -268,7 +262,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
             else if (object.type == 'Boolean') {
                 const tmpvalue = buf.readUInt8(offsetObject + offset);
@@ -278,7 +271,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
             else if (object.type == 'Bit') {
                 throw new Error('reading process values: unhandled type: Bit');
@@ -291,7 +283,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
             else if (object.type == 'Selection') {
                 let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
@@ -301,7 +292,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
             else if (object.type == 'Selector') {
                 let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
@@ -311,7 +301,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
 
             const result = {

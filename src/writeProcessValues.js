@@ -18,10 +18,11 @@ export async function write(processValueUrl, processValue) {
     const processDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
 
     const object = byString(processDescription, parameter.parameterUrl);
-    if (object.readOnly) Promise.reject('This process value is readOnly');
+    if (object.readOnly) {
+        return Promise.reject();
+    }
     var offsetObject = object.offsetSharedMemory;
     var offsetMetadata = object.offsetSharedMemory + object.relativeOffsetMetadata;
-    let buffer;
 
     const OffsetManagementBuffer = 12;
     // double buffered shared memory
@@ -51,7 +52,6 @@ export async function write(processValueUrl, processValue) {
 
         //const activeReadBuffer = buf.readUInt32LE(0);
         const activeWriteBuffer = doubleBuffer ? buf.readUInt32LE(4) : 0;
-        console.log(activeWriteBuffer);
         const offset = doubleBuffer ? OffsetManagementBuffer + activeWriteBuffer * LengthSharedMemory : 0;
 
         // *          Momentan sind die folgenden Datentypen implementiert:

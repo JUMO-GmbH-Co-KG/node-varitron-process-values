@@ -110,6 +110,7 @@ shared_memory::shared_memory(const Napi::CallbackInfo &info)
 
 void shared_memory::writeData(const Napi::CallbackInfo &info)
 {
+
     // CHECK_ARGS(napi_tools::string | napi_tools::buffer);
     std::vector<char> data;
 
@@ -126,14 +127,18 @@ void shared_memory::writeData(const Napi::CallbackInfo &info)
     {
         // semaphore lock
         m_semaphoreLock.lock();
-
         //"write buffer"
         memcpy(this->buffer, data.data(), data.size());
+
+        // ck_sequenz write begin
+        ck_sequence_write_begin(&pManagmentBuffer->seqlock);
 
         // swap A / B
         std::swap(pManagmentBuffer->activeReadBuffer, pManagmentBuffer->activeWriteBuffer);
 
         // ck_sequenz +1
+
+        ck_sequence_write_end(&pManagmentBuffer->seqlock);
 
         // semaphore unlock
         m_semaphoreLock.unlock();
