@@ -28,6 +28,9 @@ export async function write(processValueUrl, processValue) {
     // double buffered shared memory
     //const size = 2 * LengthSharedMemory + OffsetManagementBuffer; //748
     const doubleBuffer = processDescription.doubleBuffer;
+    if (doubleBuffer) {
+        return Promise.reject('Not allowed to write to doublebuffer');
+    }
     const keyFromDescription = processDescription.key;
     const LengthSharedMemory = processDescription.sizeOfSharedMemory;
     const size = doubleBuffer ? 2 * LengthSharedMemory + OffsetManagementBuffer : LengthSharedMemory;
