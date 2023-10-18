@@ -1,3 +1,3 @@
-export { getProviderList } from 'browseProcessValues.js';
-export { read } from 'readProcessValues.js';
-export { write } from 'writeProcessValues.js'
+export { getProviderList } from './src/browseProcessValues.js';
+export { read } from './src/readProcessValues.js';
+export { write } from './src/writeProcessValues.js'

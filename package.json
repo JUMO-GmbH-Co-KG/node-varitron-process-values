@@ -19,6 +19,7 @@
   ],
   "author": "Marcus Geicke",
   "license": "ISC",
+  "main": "index.js",
   "devDependencies": {
     "node-gyp": "^9.4.0"
   },
