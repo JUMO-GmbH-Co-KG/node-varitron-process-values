@@ -158,38 +158,71 @@ void shared_memory::writeData(const Napi::CallbackInfo &info)
 
 Napi::Value shared_memory::readBuffer(const Napi::CallbackInfo &info)
 {
-    auto buf = Napi::Buffer<char>::New(info.Env(), this->size);
     ManagementBuffer *pManagmentBuffer = (ManagementBuffer *)buffer;
+    Napi::Env env = info.Env();
+
+    auto buf = Napi::Buffer<char>::New(info.Env(), this->size);
+    const unsigned int maxReadRetries = 10;
+    unsigned int counter = 0;
+    bool bRepetitionRequired = true;
 
     if (doublebuffer)
     {
-        bool bRepetitionRequired = true;
-        // ck_sequenz lock read
-        auto m_version = ck_sequence_read_begin(&pManagmentBuffer->seqlock);
 
-        while (bRepetitionRequired)
+        while (bRepetitionRequired && (counter <= maxReadRetries))
         {
+            // ck_sequenz lock read
+            auto m_version = ck_sequence_read_begin(&pManagmentBuffer->seqlock);
+
             // read value
             memcpy(buf.Data(), this->buffer, this->size);
 
             // read ck_sequenz again - if true read again
             bRepetitionRequired = ck_sequence_read_retry(&pManagmentBuffer->seqlock, m_version);
+            counter++;
         }
+
+        if (bRepetitionRequired)
+        {
+            throw Napi::Error::New(env, "C++: can not read value.");
+        }
+
         // return buffer
         return buf.ToObject();
     }
     else
     {
 
-        // semaphore lock
-        m_semaphoreLock.lock();
+        while (bRepetitionRequired && (counter <= maxReadRetries))
+        {
 
-        // read Value
-        memcpy(buf.Data(), this->buffer, this->size);
+            // semaphore lock
+            if (m_semaphoreLock.lock())
+            {
 
-        // semaphore unlock
-        m_semaphoreLock.unlock();
+                // read Value
+                memcpy(buf.Data(), this->buffer, this->size);
 
+                if (m_semaphoreLock.unlock())
+                {
+                    bRepetitionRequired = false;
+                }
+                else
+                {
+                    std::cout << "read semaphore unlock failed" << std::endl;
+                }
+            }
+            else
+            {
+                std::cout << "read semaphore lock failed" << std::endl;
+            }
+            counter++;
+        }
+
+        if (bRepetitionRequired)
+        {
+            throw Napi::Error::New(env, "C++: can not read value.");
+        }
         // return buffer
         return buf.ToObject();
     }
