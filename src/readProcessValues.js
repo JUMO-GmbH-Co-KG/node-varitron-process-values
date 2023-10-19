@@ -48,78 +48,7 @@ export async function read(processValueUrl) {
             const readSemaphore = processDescription.key + 'Semaphore' + keyForBufferLocking;
             try {
 
-                const memory = new native.shared_memory(shmKey, size, doubleBuffer, readSemaphore, 0);
-
-                // Read the data into a buffer
-                const buf = memory.buffer;
-
-
-                const activeReadBuffer = buf.readUInt32LE(0);
-                //const activeWriteBuffer = buf.readUInt32LE(4);
-                const offset = OffsetManagementBuffer + activeReadBuffer * LengthSharedMemory;
-
-                let value;
-
-                // *          Momentan sind die folgenden Datentypen implementiert:
-                // *
-                // *          ShortInteger - signed short 16bit
-                // *          UnsignedShortInteger - unsigned short 16bit
-                // *          Integer - int 32bit
-                // *          UnsignedInteger - unsigned int 32 bit
-                // *          LongLong - signed long long 64bit
-                // *          UnsignedLongLong - unsigned long long 64bit
-                // *          Double - Gleitkommazahl mit doppelter Genauigkeit
-                // *          Float - Gleitkommazahl mit einfacher Genauigkeit
-                // *          Boolean - C++11 Typ bool
-                // *          Bit - ein Bit in einem Byte
-                // *          String - QString
-                // *          Selection - QString
-                // *          Selector - QString
-
-                if (object.type == 'ShortInteger') {
-                    value = buf.readInt16LE(offsetObject + offset);
-                }
-                else if (object.type == 'UnsignedShortInteger') {
-                    value = buf.readUInt16LE(offsetObject + offset);
-                }
-                else if (object.type == 'Integer') {
-                    value = buf.readInt32LE(offsetObject + offset);
-                }
-                else if (object.type == 'UnsignedInteger') {
-                    value = buf.readUInt32LE(offsetObject + offset);
-                }
-                else if (object.type == 'LongLong') {
-                    value = buf.readInt64LE(offsetObject + offset);
-                }
-                else if (object.type == 'UnsignedLongLong') {
-                    value = buf.readUInt64LE(offsetObject + offset);
-                }
-                else if (object.type == 'Double') {
-                    value = buf.readDoubleLE(offsetObject + offset);
-                }
-                else if (object.type == 'Float') {
-                    value = buf.readFloatLE(offsetObject + offset);
-                }
-                else if (object.type == 'Boolean') {
-                    const tmpvalue = buf.readInt32LE(offsetObject + offset);
-                    value = tmpvalue != 0;
-                }
-                else if (object.type == 'Bit') {
-                    throw new Error('reading process values: unhandled type: Bit');
-                }
-                else if (object.type == 'String') {
-                    let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
-                    value = tmpbuffer.toString();
-                }
-                else if (object.type == 'Selection') {
-                    let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
-                    value = tmpbuffer.toString();
-                }
-                else if (object.type == 'Selector') {
-                    let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
-                    value = tmpbuffer.toString();
-                }
-
+                //copy from below if finished
                 const result = {
                     "url": procValueUrl,
                     "value": value,
@@ -257,15 +186,42 @@ export async function read(processValueUrl) {
             }
             else if (object.type == 'Float') {
                 value = buf.readFloatLE(offsetObject + offset);
+                //read out metadata from process value
                 if (object.sizeMetadata == 0) {
-                    metadata = null;
+                    if (value == 1e37) {
+                        metadata = 1;
+                    } else if (value == 2e37) {
+                        metadata = 2;
+                    } else if (value == 3e37) {
+                        metadata = 3;
+                    } else if (value == 4e37) {
+                        metadata = 4;
+                    } else if (value == 5e37) {
+                        metadata = 5;
+                    } else if (value == 6e37) {
+                        metadata = 6;
+                    } else if (value == 7e37) {
+                        metadata = 7;
+                    } else if (value == 8e37) {
+                        metadata = 8;
+                    } else if (value == 9e37) {
+                        metadata = 9;
+                    } else {
+                        metadata = 0;
+                    }
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
             }
             else if (object.type == 'Boolean') {
-                const tmpvalue = buf.readUInt8(offsetObject + offset);
-                value = tmpvalue != 0;
+                if (object.sizeValue == 1) {
+                    const tmpvalue = buf.readUInt8(offsetObject + offset);
+                    value = tmpvalue != 0;
+                } else if (object.sizeValue == 4) {
+                    const tmpvalue = buf.readUInt32LE(offsetObject + offset);
+                    value = tmpvalue != 0;
+                }
+
                 if (object.sizeMetadata == 0) {
                     metadata = null;
                 } else if (object.sizeMetadata == 4) {
@@ -273,7 +229,13 @@ export async function read(processValueUrl) {
                 }
             }
             else if (object.type == 'Bit') {
-                throw new Error('reading process values: unhandled type: Bit');
+                const tmpvalue = buf.readUInt8(offsetObject + offset);
+                if (tmpvalue & object.bitMask) {
+                    value = true;
+                } else {
+                    value = false;
+                }
+                metadata = null;
             }
             else if (object.type == 'String') {
                 let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);

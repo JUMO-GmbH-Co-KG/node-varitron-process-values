@@ -110,49 +110,63 @@ shared_memory::shared_memory(const Napi::CallbackInfo &info)
 
 void shared_memory::writeData(const Napi::CallbackInfo &info)
 {
-
-    // CHECK_ARGS(napi_tools::string | napi_tools::buffer);
-    std::vector<char> data;
-
-    auto buf = info[0].As<Napi::Buffer<char>>();
-    bool doublebuffer = info[1].ToBoolean();
-    data = std::vector<char>(buf.Data(), buf.Data() + buf.Length());
-    ManagementBuffer *pManagmentBuffer = (ManagementBuffer *)buffer;
-
-    if (data.size() > this->size)
+    if (info.Length() < 3 || !info[1].IsNumber() || !info[2].IsNumber())
     {
-        throw Napi::Error::New(info.Env(), "Could not write to the buffer: The input is bigger than the buffer size");
+        throw Napi::TypeError::New(info.Env(), "writeValue requires a value, an offset, and a length as arguments");
     }
-    if (doublebuffer)
+
+    size_t offset = info[1].As<Napi::Number>().Int64Value();
+    size_t length = info[2].As<Napi::Number>().Int64Value();
+
+    if (offset < 0 || offset + length > this->size)
     {
-        // semaphore lock
-        m_semaphoreLock.lock();
-        //"write buffer"
-        memcpy(this->buffer, data.data(), data.size());
+        throw Napi::RangeError::New(info.Env(), "Offset and length exceed buffer size");
+    }
 
-        // ck_sequenz write begin
-        ck_sequence_write_begin(&pManagmentBuffer->seqlock);
+    if (info[0].IsBuffer())
+    {
+        auto buf = info[0].As<Napi::Buffer<char>>();
+        if (buf.Length() != length)
+        {
+            throw Napi::RangeError::New(info.Env(), "Value buffer length does not match the specified length");
+        }
 
-        // swap A / B
-        std::swap(pManagmentBuffer->activeReadBuffer, pManagmentBuffer->activeWriteBuffer);
+        unsigned int counter = 0;
+        bool bRepetitionRequired = true;
+        const unsigned int maxWriteRetries = 10;
 
-        // ck_sequenz +1
+        while (bRepetitionRequired && (counter <= maxWriteRetries))
+        {
+            // semaphore lock
+            if (m_semaphoreLock.lock())
+            {
 
-        ck_sequence_write_end(&pManagmentBuffer->seqlock);
+                memcpy(this->buffer + offset, buf.Data(), length);
 
-        // semaphore unlock
-        m_semaphoreLock.unlock();
+                // semaphore unlock
+                if (m_semaphoreLock.unlock())
+                {
+                    bRepetitionRequired = false;
+                }
+                else
+                {
+                    std::cout << "C++: unable to unlock semaphore for writing" << std::endl;
+                }
+            }
+            else
+            {
+                std::cout << "C++: unable to lock semaphore for writing" << std::endl;
+            }
+            counter++;
+        }
+        if (bRepetitionRequired)
+        {
+            throw Napi::TypeError::New(info.Env(), "Unable to write value");
+        }
     }
     else
     {
-        // semaphore lock
-        m_semaphoreLock.lock();
-
-        // write Value
-        memcpy(this->buffer, data.data(), data.size());
-
-        // semaphore unlock
-        m_semaphoreLock.unlock();
+        throw Napi::TypeError::New(info.Env(), "Value must be a buffer");
     }
 }
 

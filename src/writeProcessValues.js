@@ -19,7 +19,7 @@ export async function write(processValueUrl, processValue) {
 
     const object = byString(processDescription, parameter.parameterUrl);
     if (object.readOnly) {
-        return Promise.reject();
+        return Promise.reject('Not allowed to write read Only process values');
     }
     var offsetObject = object.offsetSharedMemory;
     var offsetMetadata = object.offsetSharedMemory + object.relativeOffsetMetadata;
@@ -74,52 +74,78 @@ export async function write(processValueUrl, processValue) {
         // *          Selector - QString
 
         if (object.type == 'ShortInteger') {
-            buf.writeInt16LE(processValue, offsetObject + offset);
+            const int16Value = Buffer.alloc(2);
+            int16Value.writeInt16LE(processValue);
+            try {
+                memory.write(int16Value, offsetObject + offset, 2);
+            } catch (e) {
+                return Promise.reject('Unable to write shared memory.' + e)
+            }
+
         }
         else if (object.type == 'UnsignedShortInteger') {
-            buf.writeUInt16LE(processValue, offsetObject + offset);
+            const uint16Value = Buffer.alloc(2);
+            uint16Value.writeUInt16LE(processValue);
+            memory.write(uint16Value, offsetObject + offset, 2);
         }
         else if (object.type == 'Integer') {
-            buf.writeInt32LE(processValue, offsetObject + offset);
+            const int32Value = Buffer.alloc(4);
+            int32Value.writeInt32LE(processValue);
+            memory.write(int32Value, offsetObject + offset, 4);
         }
         else if (object.type == 'UnsignedInteger') {
-            buf.writeUInt32LE(processValue, offsetObject + offset);
+            const uint32Value = Buffer.alloc(4);
+            uint32Value.writeUInt32LE(processValue);
+            memory.write(uint32Value, offsetObject + offset, 4);
         }
         else if (object.type == 'LongLong') {
-            buf.writeBigInt64LE(processValue, offsetObject + offset);
+            const long = Buffer.alloc(8);
+            long.writeBigInt64LE(processValue);
+            memory.write(long, offsetObject + offset, 8);
         }
         else if (object.type == 'UnsignedLongLong') {
-            buf.writeUBigInt64LE(processValue, offsetObject + offset);
+            const ulong = Buffer.alloc(8);
+            ulong.writeUBigInt64LE(processValue);
+            memory.write(ulong, offsetObject + offset, 8);
         }
         else if (object.type == 'Double') {
-            buf.writeDoubleLE(processValue, offsetObject + offset);
+            const double = Buffer.alloc(8);
+            double.writeDoubleLE(processValue);
+            memory.write(double, offsetObject + offset, 8);
         }
         else if (object.type == 'Float') {
-            buf.writeFloatLE(processValue, offsetObject + offset);
+            const float = Buffer.alloc(4);
+            float.writeFloatLE(processValue);
+            memory.write(float, offsetObject + offset, 4);
         }
         else if (object.type == 'Boolean') {
-            buf.writeInt32LE(processValue, offsetObject + offset);
+            if (object.sizeValue == 4) {
+                const bool = Buffer.alloc(4);
+                bool.writeUInt32LE(processValue);
+                memory.write(bool, offsetObject + offset, 4);
+            } else if (object.sizeValue == 1) {
+                const bool = Buffer.alloc(1);
+                bool.writeUInt8(processValue);
+                memory.write(bool, offsetObject + offset, 1);
+            }
         }
         else if (object.type == 'Bit') {
             throw new Error('writing process values: unhandled type: Bit');
         }
         else if (object.type == 'String') {
-            buf.write(processValue, offsetObject + offset)
+            throw new Error('writing process values: unhandled type: Bit');
         }
         else if (object.type == 'Selection') {
-            buf.write(processValue, offsetObject + offset)
+            throw new Error('writing process values: unhandled type: Bit');
         }
         else if (object.type == 'Selector') {
-            buf.write(processValue, offsetObject + offset)
+            throw new Error('writing process values: unhandled type: Bit');
         }
-
-        memory.write(buf);
-
         return Promise.resolve();
 
     } catch (e) {
         console.error(e);
-        return Promise.reject();
+        return Promise.reject(e);
 
     }
 }
