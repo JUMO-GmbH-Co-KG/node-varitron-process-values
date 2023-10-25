@@ -15,80 +15,58 @@ export async function read(processValueUrl) {
         // Parameter is an array
         let results;
         for (let procValueUrl of processValueUrl) {
-
-            const moduleName = getModuleName(procValueUrl);
-            const instanceName = getInstanceName(procValueUrl);
-            const objectName = getObjectName(procValueUrl);
-
-            const parameter = getObjectFromUrl(procValueUrl);
-            const processDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
-
-            const object = byString(processDescription, parameter.parameterUrl);
-            var offsetObject = object.offsetSharedMemory;
-
-            let buffer;
-
-            const OffsetManagementBuffer = 12;
-            // double buffered shared memory
-            //const size = 2 * LengthSharedMemory + OffsetManagementBuffer; //748
-            const doubleBuffer = processDescription.doubleBuffer;
-            const keyFromDescription = processDescription.key;
-            const LengthSharedMemory = processDescription.sizeOfSharedMemory;
-            const size = doubleBuffer ? 2 * LengthSharedMemory + OffsetManagementBuffer : LengthSharedMemory;
-            console.log(doubleBuffer, keyFromDescription, LengthSharedMemory, size);
-
-            // get shmKey by key from description file
-            const shmKeyNumber = getShmKeyByDescriptionKey(keyFromDescription);
-            const shmKeyFixed = shmKeyNumber == -1 ? 0x5118001d : shmKeyNumber;
-            const shmKey = '0x' + shmKeyFixed.toString(16);
-            console.log('byDescKey: ' + shmKey + (shmKeyNumber == -1 ? ' (fixed)' : ''));
-
-            console.log('attaching to shm...');
-            const keyForBufferLocking = doubleBuffer ? 'WriteLock' : 'BufferLock';
-            const readSemaphore = processDescription.key + 'Semaphore' + keyForBufferLocking;
             try {
-
-                //copy from below if finished
-                const result = {
-                    "url": procValueUrl,
-                    "value": value,
-                    "unit": object.measurementRangeAttributes[0].unitText.POSIX,
-                }
-
+                const result = await readFromUrl(procValueUrl);
                 results.push(result);
-
             } catch (e) {
-                console.error(e);
-                return Promise.reject();
+                console.error('cant read process value: ' + procValueUrl + '. ' + e);
             }
+
         }
         return Promise.resolve(results);
-
+        //parameter is a Process value
     } else {
-        // Parameter is a value
-        const moduleName = getModuleName(processValueUrl);
-        const instanceName = getInstanceName(processValueUrl);
-        const objectName = getObjectName(processValueUrl);
+        try {
+            const result = await readFromUrl(processValueUrl);
+            return Promise.resolve(result);
+        } catch (e) {
+            console.error('cant read process value: ' + e);
+            return Promise.reject('cant read process value');
+        }
+    }
 
+    async function readFromUrl(processValueUrl) {
+        // get parameters from processValueUrl
         const parameter = getObjectFromUrl(processValueUrl);
+        // get ProcessDataDescription from DBus
         const processDescription = await getProcessDataDescription(
             parameter.moduleName,
             parameter.instanceName,
             parameter.objectName,
             'us_EN');
 
+        //get object to read from processDescription
         const object = byString(processDescription, parameter.parameterUrl);
+        //get offset from object in sharedMemory
         var offsetObject = object.offsetSharedMemory;
+        //get offset from Metadata of the object in shared memory
         var offsetMetadata = object.offsetSharedMemory + object.relativeOffsetMetadata;
-        let buffer;
 
+        /* the lengst from the ManagementBuffer (12 byte)
+        *  0 = activeReadBuffer
+        *  4 = activeWriteBuffer
+        *  8 = seqlock (flag for buffer manipulation)
+        */
         const OffsetManagementBuffer = 12;
-        // double buffered shared memory
-        //const size = 2 * LengthSharedMemory + OffsetManagementBuffer; //748
+        // is buffer doublebuffer
         const doubleBuffer = processDescription.doubleBuffer;
+        //get key of shared memory from process description
         const keyFromDescription = processDescription.key;
+        //get length of shared memory from process description
         const LengthSharedMemory = processDescription.sizeOfSharedMemory;
+        //calculate the size of shared memory
         const size = doubleBuffer ? 2 * LengthSharedMemory + OffsetManagementBuffer : LengthSharedMemory;
+
         console.log(doubleBuffer, keyFromDescription, LengthSharedMemory, size);
 
         // get shmKey by key from description file
@@ -101,7 +79,7 @@ export async function read(processValueUrl) {
         const keyForBufferLocking = doubleBuffer ? 'WriteLock' : 'BufferLock';
         const readSemaphore = processDescription.key + 'Semaphore' + keyForBufferLocking;
         try {
-
+            //create shared memory object in c++
             const memory = new native.shared_memory(shmKey, size, doubleBuffer, readSemaphore, 0);
 
             // Read the data into a buffer
@@ -242,7 +220,7 @@ export async function read(processValueUrl) {
                 metadata = null;
             }
             else if (object.type == 'String') {
-                let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
+                let tmpbuffer = buf.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
                 value = tmpbuffer.toString();
                 if (object.sizeMetadata == 0) {
                     metadata = null;
@@ -251,7 +229,7 @@ export async function read(processValueUrl) {
                 }
             }
             else if (object.type == 'Selection') {
-                let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
+                let tmpbuffer = buf.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
                 value = tmpbuffer.toString();
                 if (object.sizeMetadata == 0) {
                     metadata = null;
@@ -260,7 +238,7 @@ export async function read(processValueUrl) {
                 }
             }
             else if (object.type == 'Selector') {
-                let tmpbuffer = buffer.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
+                let tmpbuffer = buf.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
                 value = tmpbuffer.toString();
                 if (object.sizeMetadata == 0) {
                     metadata = null;
