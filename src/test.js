@@ -5,7 +5,8 @@ const providerlist = await getProviderList();
 //console.log(providerlist);
 const ethercatvalue = await read('ProcessData#EtherCatGateway#ProcessData#BinaryModuleInput#DIO12_6/BinaryInputs/BinaryInput010');
 //single buffer read
-const processValue1 = await read('ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm');
+const processValue1 = await read(['ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm',
+    'ProcessData#SystemObserver#ProcessData#SystemObserver#Memory/Root/Available']);
 //double buffer read
 const processValue2 = await read('ProcessData#SystemObserver#ProcessData#SystemObserver#Memory/Root/Available');
 const processValue3 = await read('ProcessData#RealTimeScheduler#ProcessData#RealTimeThread01/ThreadData#AverageValue');

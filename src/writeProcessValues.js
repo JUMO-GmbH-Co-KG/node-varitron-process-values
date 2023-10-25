@@ -133,13 +133,13 @@ export async function write(processValueUrl, processValue) {
             throw new Error('writing process values: unhandled type: Bit');
         }
         else if (object.type == 'String') {
-            throw new Error('writing process values: unhandled type: Bit');
+            throw new Error('writing process values: unhandled type: String');
         }
         else if (object.type == 'Selection') {
-            throw new Error('writing process values: unhandled type: Bit');
+            throw new Error('writing process values: unhandled type: Selection');
         }
         else if (object.type == 'Selector') {
-            throw new Error('writing process values: unhandled type: Bit');
+            throw new Error('writing process values: unhandled type: Selector');
         }
         return Promise.resolve();
 

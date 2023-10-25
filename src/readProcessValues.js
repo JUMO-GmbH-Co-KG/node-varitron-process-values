@@ -13,7 +13,7 @@ export async function read(processValueUrl) {
 
     if (Array.isArray(processValueUrl)) {
         // Parameter is an array
-        let results;
+        let results = [];
         for (let procValueUrl of processValueUrl) {
             try {
                 const result = await readFromUrl(procValueUrl);
@@ -257,7 +257,7 @@ export async function read(processValueUrl) {
             return Promise.resolve(result);
         } catch (e) {
             console.error(e);
-            return Promise.reject();
+            return Promise.reject('Cant read process value: ' + e);
         }
     }
 
