@@ -71,7 +71,11 @@ export async function read(processValueUrl) {
         const objectName = getObjectName(processValueUrl);
 
         const parameter = getObjectFromUrl(processValueUrl);
-        const processDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
+        const processDescription = await getProcessDataDescription(
+            parameter.moduleName,
+            parameter.instanceName,
+            parameter.objectName,
+            'us_EN');
 
         const object = byString(processDescription, parameter.parameterUrl);
         var offsetObject = object.offsetSharedMemory;
@@ -103,9 +107,9 @@ export async function read(processValueUrl) {
             // Read the data into a buffer
             const buf = memory.buffer;
 
-
+            //get the active read buffer from Management Buffer 
             const activeReadBuffer = doubleBuffer ? buf.readUInt32LE(0) : 0;
-            //const activeWriteBuffer = buf.readUInt32LE(4);
+            //calculate general offset inside shared memory
             const offset = doubleBuffer ? OffsetManagementBuffer + activeReadBuffer * LengthSharedMemory : 0;
 
             let value;
