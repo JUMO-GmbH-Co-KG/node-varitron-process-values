@@ -10,7 +10,7 @@ export async function getProviderList() {
         }
     } catch (e) {
         console.log('cant get RegisteredProviderList.' + e);
-        return Promise.reject();
+        return Promise.reject(e);
     }
     for (let mod of modules) {
         let instances = [];
@@ -24,7 +24,7 @@ export async function getProviderList() {
             instances.push(instance);
         } catch (e) {
             console.log('cant get list of instances for: ' + e);
-            return Promise.reject();
+            return Promise.reject(e);
         }
         for (let instance of instances) {
             try {
@@ -52,7 +52,7 @@ export async function getProviderList() {
 
             } catch (e) {
                 console.log('cant get ProcessDescription for: ' + e);
-                return Promise.reject();
+                return Promise.reject(e);
             }
         }
         pvalues.push(module);
