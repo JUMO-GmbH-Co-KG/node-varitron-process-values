@@ -7,7 +7,44 @@ import { native } from './importShm.js';
 import { isUtf8 } from 'buffer';
 
 
-export async function write(processValueUrl, processValue) {
+export async function write(object) {
+
+
+    if (typeof object === 'object') {
+        if (Array.isArray(object)) {
+            // It's an array of objects
+            object.forEach(async function (item) {
+                // Process each object in the array
+                // item is a single object
+                try {
+
+                    await writeValue(item.processValueUrl, item.processValue);
+
+                } catch (e) {
+                    console.error('cant write value: ' + item.processValueUrl + '. ' + e);
+                }
+                return Promise.resolve();
+            });
+        } else {
+            // It's a single object
+            // You can process it here
+            try {
+
+                await writeValue(object.processValueUrl, object.processValue);
+                return Promise.resolve();
+
+            } catch (e) {
+                return Promise.reject('cant write value: ' + e);
+            }
+        }
+    } else {
+        // It's not an object
+        return Promise.reject("Input is not an object or an array of objects.");
+    }
+
+}
+
+async function writeValue(processValueUrl, processValue) {
 
     // Parameter is a value
     const moduleName = getModuleName(processValueUrl);
@@ -130,7 +167,13 @@ export async function write(processValueUrl, processValue) {
             }
         }
         else if (object.type == 'Bit') {
-            throw new Error('writing process values: unhandled type: Bit');
+            let byte = buf.readUInt8(offsetObject + offset);
+            if (processValue) {
+                byte |= object.bitMask;
+            } else {
+                byte &= ~object.bitMask;
+            }
+            memory.write(byte, offsetObject + offset, 1);
         }
         else if (object.type == 'String') {
             throw new Error('writing process values: unhandled type: String');

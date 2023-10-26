@@ -20,22 +20,6 @@ public:
      */
     static void init(Napi::Env env, Napi::Object &exports);
 
-    // /**
-    //  * Generate a shared memory id
-    //  *
-    //  * @param info the callback info
-    //  * @return the generated id
-    //  */
-    // static Napi::Value generateId(const Napi::CallbackInfo &info);
-
-    // /**
-    //  * Generate a shared memory id. Async call.
-    //  *
-    //  * @param info the callback info
-    //  * @return the generated id promise
-    //  */
-    // static Napi::Value generateIdAsync(const Napi::CallbackInfo &info);
-
     /**
      * Create a shared_memory instance
      *
