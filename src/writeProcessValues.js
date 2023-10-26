@@ -169,9 +169,11 @@ async function writeValue(processValueUrl, processValue) {
         else if (object.type == 'Bit') {
             let byte = buf.readUInt8(offsetObject + offset);
             if (processValue) {
-                byte |= object.bitMask;
+                // Set the bit (1) in the byte at the specified position
+                byte |= (1 << object.bitMask);
             } else {
-                byte &= ~object.bitMask;
+                // Clear the bit (0) in the byte at the specified position
+                byte &= ~(1 << object.bitMask);
             }
             memory.write(byte, offsetObject + offset, 1);
         }
