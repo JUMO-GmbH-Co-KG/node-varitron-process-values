@@ -250,6 +250,8 @@ export async function read(processValueUrl) {
             const result = {
                 "url": processValueUrl,
                 "value": value,
+                "type": object.type,
+                "readOnly": object.readOnly,
                 "unit": object.measurementRangeAttributes?.[0]?.unitText?.POSIX || '',
                 "metadata": metadata,
             }

@@ -95,7 +95,7 @@ async function createObjectHierarchy(obj, propName, moduleName, instanceName, ob
                     const unit = Object.hasOwn(obj, 'measurementRangeAttributes') ? obj.measurementRangeAttributes[0].unitText.POSIX : '';
                     addToHierarchy(filteredArray, {
                         name: newPath[newPath.length - 1],
-                        path: 'ProcessData#' + moduleName + '#' + objectName + '#' + instanceName + '#' + path,
+                        URL: 'ProcessData#' + moduleName + '#' + objectName + '#' + instanceName + '#' + path,
                         type: obj.type,
                         readOnly: obj.readOnly,
                         unit: unit
