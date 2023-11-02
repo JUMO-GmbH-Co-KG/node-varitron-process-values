@@ -167,15 +167,18 @@ async function writeValue(processValueUrl, processValue) {
             }
         }
         else if (object.type == 'Bit') {
-            let byte = buf.readUInt8(offsetObject + offset);
-            if (processValue) {
-                // Set the bit (1) in the byte at the specified position
-                byte |= (1 << object.bitMask);
-            } else {
-                // Clear the bit (0) in the byte at the specified position
-                byte &= ~(1 << object.bitMask);
-            }
-            memory.write(byte, offsetObject + offset, 1);
+            // let byte = buf.readUInt8(offsetObject + offset);
+            // if (processValue) {
+            //     // Set the bit (1) in the byte at the specified position
+            //     byte |= object.bitMask;
+            // } else {
+            //     // Clear the bit (0) in the byte at the specified position
+            //     byte &= ~object.bitMask;
+            // }
+            // const bytebuffer = Buffer.alloc(1);
+            // bytebuffer.writeUInt8(byte);
+            // memory.write(bytebuffer, offsetObject + offset, 1);
+            memory.writeByte(object.bitMask, processValue, offsetObject + offset);
         }
         else if (object.type == 'String') {
             throw new Error('writing process values: unhandled type: String');

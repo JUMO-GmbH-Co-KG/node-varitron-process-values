@@ -52,6 +52,7 @@ struct ManagementBuffer
 void shared_memory::init(Napi::Env env, Napi::Object &exports)
 {
     Napi::Function func = DefineClass(env, "shared_memory", {
+                                                                InstanceMethod("writeByte", &shared_memory::writeDataByte, napi_enumerable),
                                                                 InstanceMethod("write", &shared_memory::writeData, napi_enumerable),
                                                                 // InstanceMethod("read", &shared_memory::readString, napi_enumerable),
                                                                 InstanceMethod("readBuffer", &shared_memory::readBuffer, napi_enumerable),
@@ -167,6 +168,60 @@ void shared_memory::writeData(const Napi::CallbackInfo &info)
     else
     {
         throw Napi::TypeError::New(info.Env(), "Value must be a buffer");
+    }
+}
+
+void shared_memory::writeDataByte(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    if (info.Length() < 3 || !info[0].IsNumber() || !info[1].IsBoolean() || !info[2].IsNumber())
+    {
+        Napi::TypeError::New(env, "writeBit requires a bitmask (number), a bit value (boolean), and an offset (number) as arguments").ThrowAsJavaScriptException();
+        return;
+    }
+
+    uint8_t bitmask = info[0].As<Napi::Number>().Uint32Value();
+    bool bitValue = info[1].As<Napi::Boolean>().Value();
+    size_t offset = info[2].As<Napi::Number>().Uint32Value();
+
+    if (offset >= this->size)
+    {
+        Napi::RangeError::New(env, "Offset exceeds buffer size").ThrowAsJavaScriptException();
+        return;
+    }
+    unsigned int counter = 0;
+    bool bRepetitionRequired = true;
+    const unsigned int maxWriteRetries = 10;
+
+    while (bRepetitionRequired && (counter <= maxWriteRetries))
+    {
+        // semaphore lock
+        if (m_semaphoreLock.lock())
+        {
+            uint8_t currentValue = this->buffer[offset];
+            uint8_t newValue = bitValue ? (currentValue | bitmask) : (currentValue & ~bitmask);
+            memcpy(this->buffer + offset, &newValue, 1);
+
+            // semaphore unlock
+            if (m_semaphoreLock.unlock())
+            {
+                bRepetitionRequired = false;
+            }
+            else
+            {
+                std::cout << "C++: unable to unlock semaphore for writing" << std::endl;
+            }
+        }
+        else
+        {
+            std::cout << "C++: unable to lock semaphore for writing" << std::endl;
+        }
+        counter++;
+    }
+    if (bRepetitionRequired)
+    {
+        throw Napi::TypeError::New(info.Env(), "Unable to write value");
     }
 }
 

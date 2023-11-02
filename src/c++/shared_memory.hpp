@@ -35,6 +35,13 @@ public:
     void writeData(const Napi::CallbackInfo &info);
 
     // /**
+    //  * Write data byte to the memory block
+    //  *
+    //  * @param info the callback info
+    //  */
+    void writeDataByte(const Napi::CallbackInfo &info);
+
+    // /**
     //  * Copy a string to the memory block
     //  *
     //  * @param info the callback info
@@ -49,14 +56,6 @@ public:
      * @param value the data to copy
      */
     void setBuffer(const Napi::CallbackInfo &info, const Napi::Value &value);
-
-    // /**
-    //  * Read a string from the memory block
-    //  *
-    //  * @param info the callback info
-    //  * @return the read string
-    //  */
-    // Napi::Value readString(const Napi::CallbackInfo &info);
 
     /**
      * Read data into a node buffer from the memory block
