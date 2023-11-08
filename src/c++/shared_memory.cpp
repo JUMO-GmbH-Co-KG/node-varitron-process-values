@@ -83,22 +83,20 @@ shared_memory::shared_memory(const Napi::CallbackInfo &info)
                               Napi::PropertyDescriptor::Value("name", info[0].ToString(),
                                                               napi_enumerable)});
 
-    auto key = static_cast<key_t>(std::stol(name, nullptr, 16));
-
     doublebuffer = info[2].ToBoolean();
 
-    int id = shmget(key, size, SHM_R | SHM_W);
-    std::cout << "(native) shmId " << id << " " << errno << endl;
-    if (id < 0)
+    int shmFileDescriptor = shm_open(name.c_str(), O_RDWR, 0666);
+    std::cout << "(native) shmFileDescriptor " << shmFileDescriptor << " " << errno << endl;
+    if (shmFileDescriptor < 0)
     {
         throw Napi::Error::New(info.Env(), "Could not get the shared memory segment: " + getErrnoAsString());
     }
     else
     {
-        extraInfo = std::make_shared<extra_info>(id);
+        extraInfo = std::make_shared<extra_info>(shmFileDescriptor);
     }
 
-    buffer = static_cast<char *>(shmat(id, nullptr, 0));
+    buffer = static_cast<char *>(mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, shmFileDescriptor, 0));
     std::cout << "(native) buffer " << static_cast<void *>(buffer) << " " << errno << endl;
     // if (reinterpret_cast<intptr_t>(buffer) <= 0) // https://stackoverflow.com/questions/573294/when-to-use-reinterpret-cast
     if (buffer == (char *)-1)
@@ -106,7 +104,8 @@ shared_memory::shared_memory(const Napi::CallbackInfo &info)
         throw Napi::Error::New(info.Env(), "Could not attach the shared memory segment: " + getErrnoAsString());
     }
 
-    Value().DefineProperty(Napi::PropertyDescriptor::Value("id", Napi::Number::From(info.Env(), key), napi_enumerable));
+    // Value().DefineProperty(Napi::PropertyDescriptor::Value("id", Napi::Number::From(info.Env(), key), napi_enumerable));
+    Value().DefineProperty(Napi::PropertyDescriptor::Value("id", Napi::Number::From(info.Env(), name), napi_enumerable));
 }
 
 void shared_memory::writeData(const Napi::CallbackInfo &info)

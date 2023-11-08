@@ -70,10 +70,8 @@ export async function read(processValueUrl) {
         console.log(doubleBuffer, keyFromDescription, LengthSharedMemory, size);
 
         // get shmKey by key from description file
-        const shmKeyNumber = getShmKeyByDescriptionKey(keyFromDescription);
-        const shmKeyFixed = shmKeyNumber == -1 ? 0x5118001d : shmKeyNumber;
-        const shmKey = '0x' + shmKeyFixed.toString(16);
-        console.log('byDescKey: ' + shmKey + (shmKeyNumber == -1 ? ' (fixed)' : ''));
+        const shmKey = keyFromDescription + 'SharedMemory';
+        console.log('byDescKey: ' + shmKey);
 
         console.log('attaching to shm...');
         const keyForBufferLocking = doubleBuffer ? 'WriteLock' : 'BufferLock';
