@@ -4,7 +4,7 @@ import dbus from 'dbus-next';
 import { parse } from './dbusReply.js';
 
 const dBusServicePrefix = 'de.jupiter.';
-const defaultDBusName = 'session';
+const defaultDBusName = 'system';
 //const dBusTimeout = 120 * 1000;
 
 let staticDBusReference;

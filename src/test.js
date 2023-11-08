@@ -6,10 +6,10 @@ import { write } from "./writeProcessValues.js"
 const providerlist = await getProviderList();
 console.log(providerlist);
 
-// //single buffer read
-// const processValue1 = await read(['ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm',
-//     'ProcessData#SystemObserver#ProcessData#SystemObserver#Memory/Root/Available']);
-// console.log('processValue1: ' + JSON.stringify(processValue1));
+//single buffer read
+const processValue1 = await read(['ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm',
+    'ProcessData#SystemObserver#ProcessData#SystemObserver#Memory/Root/Available']);
+console.log('processValue1: ' + JSON.stringify(processValue1));
 
 // //double buffer read
 // const processValue2 = await read('ProcessData#SystemObserver#ProcessData#SystemObserver#Memory/Root/Available');
