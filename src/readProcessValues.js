@@ -31,7 +31,7 @@ export async function read(processValueUrl) {
             return Promise.resolve(result);
         } catch (e) {
             console.error('cant read process value: ' + e);
-            return Promise.reject('cant read process value');
+            return Promise.reject('cant read process value.' + e);
         }
     }
 
@@ -263,35 +263,3 @@ export async function read(processValueUrl) {
 
 };
 
-
-// reimplement the jupiter-qt way from a key of a description file to the unix shmKey
-const getShmKeyByDescriptionKey = (descKey) => {
-    const keyPrependixFromJupiterApplication = 'SharedMemory'; // this is useless - qt also prepends a string with sharedmemory
-    const pathForQtSharedMemory = '/tmp'; // this might not be the correct path for the device
-    const qtFilePrefix = 'qipc_sharedmemory_';
-
-    const descKeyLettersOnly = descKey.replace(/[^a-zA-Z]+/g, ''); // qt removes all but letters to be 'PlatformSafe'
-
-    const shasum = createHash('sha1');
-    shasum.update(descKey + keyPrependixFromJupiterApplication);
-    const shaOfKey = shasum.digest('hex');
-
-    // '/tmp/qipc_sharedmemory_SystemObserverSystemObserverdSharedMemorya513c557e8801418aebfbb0791721a60a59ea14b';
-    const path = `${pathForQtSharedMemory}/${qtFilePrefix}${descKeyLettersOnly}${keyPrependixFromJupiterApplication}${shaOfKey}`;
-    console.log('path: ' + path);
-
-    const pId = 81; // 'Q' <- Qt uses this
-    return ftok(path, pId);
-};
-
-// https://man7.org/linux/man-pages/man3/ftok.3.html
-// https://www.npmjs.com/package/ftok?activeTab=code
-function ftok(path, proj_id) {
-    try {
-        var stats = statSync(path);
-
-        return (stats.ino & 0xffff) | ((stats.dev & 0xff) << 16) | ((proj_id & 0xff) << 24);
-    } catch (error) {
-        return -1;
-    }
-};

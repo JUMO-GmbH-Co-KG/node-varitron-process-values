@@ -19,12 +19,12 @@ export async function getRegisteredProvidersList(language, providerType) {
     return systemInformationManager(method, params);
 };
 
-export async function getListOfInstances(modulename, objectpath, language) {
+export async function getListOfInstances(moduleName, objectName, language) {
     const method = 'getListOfInstances';
     const params = ['node-red', language];
     const serviceDescription = {
-        serviceName: modulename,
-        objectPath: '/' + objectpath,
+        serviceName: moduleName,
+        objectPath: '/' + objectName,
         interfaceName: 'Interface.ProcessDecription',
         method,
         params,
