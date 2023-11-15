@@ -118,7 +118,7 @@ void shared_memory::writeData(const Napi::CallbackInfo &info)
     size_t offset = info[1].As<Napi::Number>().Int64Value();
     size_t length = info[2].As<Napi::Number>().Int64Value();
 
-    if (offset < 0 || offset + length > this->size)
+    if (offset + length > this->size)
     {
         throw Napi::RangeError::New(info.Env(), "Offset and length exceed buffer size");
     }
