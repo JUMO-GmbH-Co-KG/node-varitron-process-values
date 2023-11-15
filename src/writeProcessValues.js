@@ -1,5 +1,5 @@
 import { getProcessDataDescription } from './systemInformationManager.js';
-import { getModuleName, getInstanceName, getObjectName, getObjectFromUrl, byString } from "./processValueUrl.js";
+import { getModuleName, getInstanceName, getObjectName, getObjectFromUrl, byString } from './processValueUrl.js';
 import { createHash } from 'crypto';
 import { statSync } from 'fs';
 
@@ -8,8 +8,6 @@ import { isUtf8 } from 'buffer';
 
 
 export async function write(object) {
-
-
     if (typeof object === 'object') {
         if (Array.isArray(object)) {
             // It's an array of objects
@@ -17,9 +15,7 @@ export async function write(object) {
                 // Process each object in the array
                 // item is a single object
                 try {
-
                     await writeValue(item.processValueUrl, item.processValue);
-
                 } catch (e) {
                     console.error('cant write value: ' + item.processValueUrl + '. ' + e);
                 }
@@ -29,23 +25,19 @@ export async function write(object) {
             // It's a single object
             // You can process it here
             try {
-
                 await writeValue(object.processValueUrl, object.processValue);
                 return Promise.resolve();
-
             } catch (e) {
                 return Promise.reject('cant write value: ' + e);
             }
         }
     } else {
         // It's not an object
-        return Promise.reject("Input is not an object or an array of objects.");
+        return Promise.reject('Input is not an object or an array of objects.');
     }
-
 }
 
 async function writeValue(processValueUrl, processValue) {
-
     // Parameter is a value
     const moduleName = getModuleName(processValueUrl);
     const instanceName = getInstanceName(processValueUrl);
@@ -58,8 +50,8 @@ async function writeValue(processValueUrl, processValue) {
     if (object.readOnly) {
         return Promise.reject('Not allowed to write read Only process values');
     }
-    var offsetObject = object.offsetSharedMemory;
-    var offsetMetadata = object.offsetSharedMemory + object.relativeOffsetMetadata;
+    const offsetObject = object.offsetSharedMemory;
+    const offsetMetadata = object.offsetSharedMemory + object.relativeOffsetMetadata;
 
     const OffsetManagementBuffer = 12;
     // double buffered shared memory
@@ -81,7 +73,6 @@ async function writeValue(processValueUrl, processValue) {
     const keyForBufferLocking = doubleBuffer ? 'WriteLock' : 'BufferLock';
     const readSemaphore = processDescription.key + 'Semaphore' + keyForBufferLocking;
     try {
-
         const memory = new native.shared_memory(shmKey, size, doubleBuffer, readSemaphore, 0);
 
         // Read the data into a buffer
@@ -114,9 +105,8 @@ async function writeValue(processValueUrl, processValue) {
             try {
                 memory.write(int16Value, offsetObject + offset, 2);
             } catch (e) {
-                return Promise.reject('Unable to write shared memory.' + e)
+                return Promise.reject('Unable to write shared memory.' + e);
             }
-
         }
         else if (object.type == 'UnsignedShortInteger') {
             const uint16Value = Buffer.alloc(2);
@@ -188,11 +178,9 @@ async function writeValue(processValueUrl, processValue) {
             throw new Error('writing process values: unhandled type: Selector');
         }
         return Promise.resolve();
-
     } catch (e) {
         console.error(e);
         return Promise.reject(e);
-
     }
 }
 

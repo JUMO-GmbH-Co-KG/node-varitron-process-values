@@ -25,7 +25,7 @@ function getBus() {
         }
     }
     return staticDBusReference;
-};
+}
 
 const defaultServiceDescription = Object.freeze({
     servicePrefix: dBusServicePrefix,
@@ -60,7 +60,7 @@ export async function dbusGateway(serviceDescription) {
         err += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
         return Promise.reject(err);
     }
-};
+}
 
 const defaultSignalDescription = Object.freeze({
     servicePrefix: dBusServicePrefix,
@@ -84,7 +84,7 @@ export async function attachSignal(signalDescription) {
         err += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
         throw err;
     }
-};
+}
 
 export async function detachSignal(signalDescription) {
     const description = Object.assign({}, defaultSignalDescription, signalDescription);
@@ -100,4 +100,4 @@ export async function detachSignal(signalDescription) {
         err += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
         throw err;
     }
-};
+}

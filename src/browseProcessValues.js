@@ -1,24 +1,24 @@
 import { getRegisteredProvidersList, getListOfInstances, getProcessDataDescription } from './systemInformationManager.js';
 
 export async function getProviderList() {
-    let modules = [];
-    let pvalues = [];
+    const modules = [];
+    const pvalues = [];
     try {
         const processdata = await getRegisteredProvidersList('us_EN', 'ProcessData');
-        for (let pdata of processdata) {
-            modules.push({ "moduleName": pdata.moduleName, "objectName": pdata.objectName });
+        for (const pdata of processdata) {
+            modules.push({ 'moduleName': pdata.moduleName, 'objectName': pdata.objectName });
         }
     } catch (e) {
         console.log('cant get RegisteredProviderList.' + e);
         return Promise.reject(e);
     }
-    for (let mod of modules) {
-        let instances = [];
-        let module = {
-            "moduleName": mod.moduleName,
-            "objectName": mod.objectName,
-            "instances": []
-        }
+    for (const mod of modules) {
+        const instances = [];
+        const module = {
+            'moduleName': mod.moduleName,
+            'objectName': mod.objectName,
+            'instances': []
+        };
         try {
             const instance = await getListOfInstances(mod.moduleName, mod.objectName, 'us_EN');
             instances.push(instance);
@@ -26,10 +26,9 @@ export async function getProviderList() {
             console.log('cant get list of instances for: ' + e);
             return Promise.reject(e);
         }
-        for (let instance of instances) {
+        for (const instance of instances) {
             try {
                 for (let i = 0; i < instance.length; i++) {
-
                     async function findInstance(obj) {
                         if (Object.hasOwn(obj, 'substructure')) {
                             for (let i = 0; i < obj.substructure.length; i++) {
@@ -41,15 +40,14 @@ export async function getProviderList() {
                             const objectName = obj.objectName;
                             const value = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
 
-                            let values = await createObjectHierarchy(value, 'offsetSharedMemory', moduleName, instanceName, objectName);
+                            const values = await createObjectHierarchy(value, 'offsetSharedMemory', moduleName, instanceName, objectName);
 
-                            let object = { "name": instanceName, "values": values };
-                            module.instances.push(object)
+                            const object = { 'name': instanceName, values };
+                            module.instances.push(object);
                         }
-                    };
+                    }
                     await findInstance(instance[i]);
                 }
-
             } catch (e) {
                 console.log('cant get ProcessDescription for: ' + e);
                 return Promise.reject(e);
@@ -78,7 +76,7 @@ async function createObjectHierarchy(obj, propName, moduleName, instanceName, ob
     }
 
     function traverseObject(obj, currentPath) {
-        for (let key in obj) {
+        for (const key in obj) {
             if (obj.hasOwnProperty(key)) {
                 let newPath = currentPath.concat(key);
                 const value = obj[key];
@@ -100,7 +98,7 @@ async function createObjectHierarchy(obj, propName, moduleName, instanceName, ob
                         URL: 'ProcessData#' + moduleName + '#' + objectName + '#' + instanceName + '#' + path,
                         type: obj.type,
                         readOnly: obj.readOnly,
-                        unit: unit
+                        unit
 
                     });
                 }

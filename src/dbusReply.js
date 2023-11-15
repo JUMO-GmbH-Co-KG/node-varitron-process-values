@@ -17,7 +17,7 @@ export function formatData(data) {
     // return all other data as it is, wrapped in an array
     // this is because we want a valid JSON object every time
     return [data];
-};
+}
 
 export function parse(result) {
     if (result && result.value) {
@@ -37,4 +37,4 @@ export function parse(result) {
         }
     }
     return undefined;
-};
+}

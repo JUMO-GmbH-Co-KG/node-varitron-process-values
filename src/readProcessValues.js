@@ -1,25 +1,20 @@
 import { getProcessDataDescription } from './systemInformationManager.js';
-import { getObjectFromUrl, byString } from "./processValueUrl.js";
+import { getObjectFromUrl, byString } from './processValueUrl.js';
 
 import { native } from './importShm.js';
 
 
-
-
 export async function read(processValueUrl) {
-
-
     if (Array.isArray(processValueUrl)) {
         // Parameter is an array
-        let results = [];
-        for (let procValueUrl of processValueUrl) {
+        const results = [];
+        for (const procValueUrl of processValueUrl) {
             try {
                 const result = await readFromUrl(procValueUrl);
                 results.push(result);
             } catch (e) {
                 console.error('cant read process value: ' + procValueUrl + '. ' + e);
             }
-
         }
         return Promise.resolve(results);
         //parameter is a Process value
@@ -46,9 +41,9 @@ export async function read(processValueUrl) {
         //get object to read from processDescription
         const object = byString(processDescription, parameter.parameterUrl);
         //get offset from object in sharedMemory
-        var offsetObject = object.offsetSharedMemory;
+        const offsetObject = object.offsetSharedMemory;
         //get offset from Metadata of the object in shared memory
-        var offsetMetadata = object.offsetSharedMemory + object.relativeOffsetMetadata;
+        const offsetMetadata = object.offsetSharedMemory + object.relativeOffsetMetadata;
 
         /* the lengst from the ManagementBuffer (12 byte)
         *  0 = activeReadBuffer
@@ -131,7 +126,6 @@ export async function read(processValueUrl) {
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
-
             }
             else if (object.type == 'UnsignedInteger') {
                 value = buf.readUInt32LE(offsetObject + offset);
@@ -199,7 +193,7 @@ export async function read(processValueUrl) {
                 metadata = null;
             }
             else if (object.type == 'String') {
-                let tmpbuffer = buf.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
+                const tmpbuffer = buf.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
                 value = tmpbuffer.toString();
                 if (object.sizeMetadata == 0) {
                     metadata = null;
@@ -208,7 +202,7 @@ export async function read(processValueUrl) {
                 }
             }
             else if (object.type == 'Selection') {
-                let tmpbuffer = buf.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
+                const tmpbuffer = buf.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
                 value = tmpbuffer.toString();
                 if (object.sizeMetadata == 0) {
                     metadata = null;
@@ -217,7 +211,7 @@ export async function read(processValueUrl) {
                 }
             }
             else if (object.type == 'Selector') {
-                let tmpbuffer = buf.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
+                const tmpbuffer = buf.slice(offsetObject + offset, offsetObject + offset + object.sizeValue);
                 value = tmpbuffer.toString();
                 if (object.sizeMetadata == 0) {
                     metadata = null;
@@ -229,16 +223,16 @@ export async function read(processValueUrl) {
             const errorText = getErrorText(metadata);
 
             const result = {
-                "url": processValueUrl,
-                "value": value,
-                "type": object.type,
-                "readOnly": object.readOnly,
-                "unit": object.measurementRangeAttributes?.[0]?.unitText?.POSIX || '',
-                "error": {
-                    "errorCode": metadata,
-                    "errorText": errorText
+                'url': processValueUrl,
+                value,
+                'type': object.type,
+                'readOnly': object.readOnly,
+                'unit': object.measurementRangeAttributes?.[0]?.unitText?.POSIX || '',
+                'error': {
+                    'errorCode': metadata,
+                    errorText
                 }
-            }
+            };
 
             return Promise.resolve(result);
         } catch (e) {
@@ -246,8 +240,7 @@ export async function read(processValueUrl) {
             return Promise.reject('Cant read process value: ' + e);
         }
     }
-
-};
+}
 
 /*
 * function: getErrorText
@@ -255,40 +248,40 @@ export async function read(processValueUrl) {
 */
 function getErrorText(metadata) {
     if (metadata == null) {
-        return "";
+        return '';
     }
     else if (metadata == 0) {
-        return "valid";
+        return 'valid';
     }
     else if (metadata == 1) {
-        return "underrange";
+        return 'underrange';
     }
     else if (metadata == 2) {
-        return "overrange"
+        return 'overrange';
     }
     else if (metadata == 3) {
-        return "noValidInputValue"
+        return 'noValidInputValue';
     }
     else if (metadata == 4) {
-        return "divisionByZero"
+        return 'divisionByZero';
     }
     else if (metadata == 5) {
-        return "incorrectMathematicValue"
+        return 'incorrectMathematicValue';
     }
     else if (metadata == 6) {
-        return "invalidTemperature"
+        return 'invalidTemperature';
     }
     else if (metadata == 7) {
-        return "sensorShortCircuit"
+        return 'sensorShortCircuit';
     }
     else if (metadata == 8) {
-        return "sensorBreakage"
+        return 'sensorBreakage';
     }
     else if (metadata == 9) {
-        return "timeout"
+        return 'timeout';
     }
     else {
-        return "";
+        return '';
     }
 }
 /*
@@ -296,9 +289,8 @@ function getErrorText(metadata) {
 * function to resolve a errorCode from ProcessValue (Double,Float)
 */
 function getErrorCodeFromValue(value, type) {
-
     //handling of floats
-    if (type == "Float") {
+    if (type == 'Float') {
         if (value == 1e37) {
             return 1;
         } else if (value == 2e37) {
@@ -322,27 +314,26 @@ function getErrorCodeFromValue(value, type) {
         }
     }
     //handling of doubles
-    if (type = "Double") {
-
+    if (type = 'Double') {
         const nanValue = extractNaNPayload(value);
 
-        if (nanValue == "1") {
+        if (nanValue == '1') {
             return 1;
-        } else if (nanValue == "2") {
+        } else if (nanValue == '2') {
             return 2;
-        } else if (nanValue == "3") {
+        } else if (nanValue == '3') {
             return 3;
-        } else if (nanValue == "4") {
+        } else if (nanValue == '4') {
             return 4;
-        } else if (nanValue == "5") {
+        } else if (nanValue == '5') {
             return 5;
-        } else if (nanValue == "6") {
+        } else if (nanValue == '6') {
             return 6;
-        } else if (nanValue == "7") {
+        } else if (nanValue == '7') {
             return 7;
-        } else if (nanValue == "8") {
+        } else if (nanValue == '8') {
             return 8;
-        } else if (nanValue == "9") {
+        } else if (nanValue == '9') {
             return 9;
         } else {
             return 0;
@@ -366,12 +357,11 @@ function extractNaNPayload(doubleValue) {
         // If the exponent bits are all 1s (indicating a NaN)
         if (mantissa !== 0n) {
             // If the mantissa is non-zero, it's a payload NaN
-            return mantissa.toString(16)
-
+            return mantissa.toString(16);
         } else {
-            return "Standard NaN"; // No payload in the NaN
+            return 'Standard NaN'; // No payload in the NaN
         }
     } else {
-        return "Not a NaN"; // The value is not NaN
+        return 'Not a NaN'; // The value is not NaN
     }
 }

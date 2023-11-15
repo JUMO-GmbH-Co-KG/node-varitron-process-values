@@ -10,14 +10,14 @@ export async function systemInformationManager(method, params) {
         params,
     };
     return dbusGateway(serviceDescription);
-};
+}
 
 export async function getRegisteredProvidersList(language, providerType) {
     const method = 'getRegisteredProvidersList';
     const params = [providerType, language];
 
     return systemInformationManager(method, params);
-};
+}
 
 export async function getListOfInstances(moduleName, objectName, language) {
     const method = 'getListOfInstances';
@@ -31,7 +31,7 @@ export async function getListOfInstances(moduleName, objectName, language) {
     };
 
     return dbusGateway(serviceDescription);
-};
+}
 
 export async function getProcessDataDescription(moduleName, instanceName, objectName, language) {
     const method = 'getProcessDataDescription';
@@ -45,4 +45,4 @@ export async function getProcessDataDescription(moduleName, instanceName, object
     };
 
     return dbusGateway(serviceDescription);
-};
+}

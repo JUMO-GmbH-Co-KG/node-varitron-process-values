@@ -1,4 +1,4 @@
-import { read } from '../src/readProcessValues.js'
+import { read } from '../src/readProcessValues.js';
 
 // single buffer read
 const processValue1 = await read(['ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm',
