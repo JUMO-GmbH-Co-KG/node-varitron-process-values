@@ -1,0 +1,77 @@
+{
+    "env": {
+        "commonjs": true,
+        "es2021": true,
+        "node": true,
+        "mocha": true
+    },
+    "plugins": ["security", "import"],
+    "extends": ["eslint:recommended", "plugin:security/recommended", "plugin:import/recommended"],
+    "parserOptions": {
+        "ecmaVersion": 2020
+    },
+    "rules": {
+        "indent": [
+            "error",
+            4,
+            {
+                "SwitchCase": 1
+            }
+        ],
+        "linebreak-style": ["error", "unix"],
+        "quotes": ["error", "single"],
+        "semi": ["error", "always"],
+        "object-curly-spacing": ["error", "always"],
+        "prefer-const": "error",
+        "no-var": "error",
+        "object-shorthand": "error",
+        "space-before-function-paren": [
+            "error",
+            {
+                "anonymous": "always",
+                "named": "never",
+                "asyncArrow": "always"
+            }
+        ],
+        "padded-blocks": [
+            "error",
+            {
+                "blocks": "never"
+            }
+        ],
+        "complexity": [
+            "error",
+            {
+                "max": 10
+            }
+        ],
+        "max-statements": [
+            "error",
+            15,
+            {
+                "ignoreTopLevelFunctions": false
+            }
+        ],
+        "no-multiple-empty-lines": "error",
+        "block-scoped-var": "error",
+        "default-case": "error",
+        "guard-for-in": "error",
+        "no-extra-bind": "error",
+        "no-implicit-coercion": "error",
+        "new-cap": ["error", { "capIsNewExceptionPattern": "^express\\.." }],
+        "global-require": "error",
+        "handle-callback-err": "error",
+        "callback-return": "error",
+        "no-console": "error",
+        "import/no-unresolved": [
+            "error",
+            {
+                "commonjs": true
+            }
+        ],
+
+        "security/detect-non-literal-fs-filename": "off",
+        "security/detect-child-process": "off",
+        "security/detect-object-injection": "off"
+    }
+}
