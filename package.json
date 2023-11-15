@@ -1,30 +1,23 @@
 {
-  "name": "jupiter-process-values",
+  "name": "jumo-varitron-process-values",
   "version": "1.0.0",
-  "description": "Node module to read process values from shared memory on the jupiter platform",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git@de-lx-gitlabew.jumo.net:jupiter/webservices/packages/jupiter-process-values.git"
-  },
-  "type": "module",
-  "keywords": [
-    "process",
-    "values",
-    "node",
-    "module",
-    "node-red"
-  ],
-  "author": "Marcus Geicke",
-  "license": "ISC",
+  "description": "Node.js module to browse, read and write JUMO variTRON process values.",
   "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "npx mocha",
+    "lint": "npx eslint src/ test/"
+  },
+  "license": "MIT",
+  "author": "JUMO GmbH & Co. KG",
   "devDependencies": {
-    "node-gyp": "^9.4.0"
+    "node-gyp": "^10.0.1"
   },
   "dependencies": {
     "dbus-next": "^0.10.2",
     "node-addon-api": "^7.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://de-lx-nexus01.jumo.net/repository/npm-jumo-ewsw-private/"
   }
 }
