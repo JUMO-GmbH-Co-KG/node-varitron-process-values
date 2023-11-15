@@ -1,11 +1,8 @@
-
-//const dbus = require('dbus-next');
 import dbus from 'dbus-next';
 import { parse } from './dbusReply.js';
 
 const dBusServicePrefix = 'de.jupiter.';
 const defaultDBusName = 'system';
-//const dBusTimeout = 120 * 1000;
 
 let staticDBusReference;
 
@@ -39,7 +36,6 @@ const defaultServiceDescription = Object.freeze({
 export async function dbusGateway(serviceDescription) {
     const description = Object.assign({}, defaultServiceDescription, serviceDescription);
     const bus = getBus();
-    //return Promise.resolve([]);
 
     try {
         const obj = await bus.getProxyObject(description.servicePrefix + description.serviceName, description.objectPath);
@@ -57,47 +53,7 @@ export async function dbusGateway(serviceDescription) {
         staticDBusReference = null;
         return Promise.resolve(parse(response));
     } catch (err) {
-        err += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
-        return Promise.reject(err);
-    }
-}
-
-const defaultSignalDescription = Object.freeze({
-    servicePrefix: dBusServicePrefix,
-    serviceName: '',
-    objectPath: '',
-    interfaceName: '',
-    signal: '',
-});
-
-export async function attachSignal(signalDescription) {
-    const description = Object.assign({}, defaultSignalDescription, signalDescription);
-
-    const bus = getBus();
-
-    try {
-        const obj = await bus.getProxyObject(description.servicePrefix + description.serviceName, description.objectPath);
-        const iface = obj.getInterface(description.interfaceName);
-
-        iface.on(description.signal, eventhandler);
-    } catch (err) {
-        err += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
-        throw err;
-    }
-}
-
-export async function detachSignal(signalDescription) {
-    const description = Object.assign({}, defaultSignalDescription, signalDescription);
-
-    const bus = getBus();
-
-    try {
-        const obj = await bus.getProxyObject(description.servicePrefix + description.serviceName, description.objectPath);
-        const iface = obj.getInterface(description.interfaceName);
-
-        iface.removeListener(description.signal, eventhandler);
-    } catch (err) {
-        err += ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
-        throw err;
+        const errMsg = err.message + ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
+        return Promise.reject(errMsg);
     }
 }

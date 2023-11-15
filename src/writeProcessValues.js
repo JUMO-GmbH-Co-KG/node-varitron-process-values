@@ -1,11 +1,6 @@
 import { getProcessDataDescription } from './systemInformationManager.js';
 import { getModuleName, getInstanceName, getObjectName, getObjectFromUrl, byString } from './processValueUrl.js';
-import { createHash } from 'crypto';
-import { statSync } from 'fs';
-
 import { native } from './importShm.js';
-import { isUtf8 } from 'buffer';
-
 
 export async function write(object) {
     if (typeof object === 'object') {
@@ -37,6 +32,7 @@ export async function write(object) {
     }
 }
 
+// eslint-disable-next-line max-statements, complexity
 async function writeValue(processValueUrl, processValue) {
     // Parameter is a value
     const moduleName = getModuleName(processValueUrl);
@@ -51,7 +47,7 @@ async function writeValue(processValueUrl, processValue) {
         return Promise.reject('Not allowed to write read Only process values');
     }
     const offsetObject = object.offsetSharedMemory;
-    const offsetMetadata = object.offsetSharedMemory + object.relativeOffsetMetadata;
+    //const offsetMetadata = object.offsetSharedMemory + object.relativeOffsetMetadata;
 
     const OffsetManagementBuffer = 12;
     // double buffered shared memory

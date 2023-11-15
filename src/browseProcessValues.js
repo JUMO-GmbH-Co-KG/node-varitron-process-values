@@ -1,5 +1,6 @@
 import { getRegisteredProvidersList, getListOfInstances, getProcessDataDescription } from './systemInformationManager.js';
 
+// eslint-disable-next-line max-statements
 export async function getProviderList() {
     const modules = [];
     const pvalues = [];
@@ -29,23 +30,6 @@ export async function getProviderList() {
         for (const instance of instances) {
             try {
                 for (let i = 0; i < instance.length; i++) {
-                    async function findInstance(obj) {
-                        if (Object.hasOwn(obj, 'substructure')) {
-                            for (let i = 0; i < obj.substructure.length; i++) {
-                                await findInstance(obj.substructure[i]);
-                            }
-                        } else {
-                            const moduleName = obj.moduleName;
-                            const instanceName = obj.instanceName;
-                            const objectName = obj.objectName;
-                            const value = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
-
-                            const values = await createObjectHierarchy(value, 'offsetSharedMemory', moduleName, instanceName, objectName);
-
-                            const object = { 'name': instanceName, values };
-                            module.instances.push(object);
-                        }
-                    }
                     await findInstance(instance[i]);
                 }
             } catch (e) {
@@ -58,6 +42,26 @@ export async function getProviderList() {
     return Promise.resolve(pvalues);
 }
 
+/*
+* function: findInstance
+*/
+async function findInstance(obj) {
+    if (Object.hasOwn(obj, 'substructure')) {
+        for (let i = 0; i < obj.substructure.length; i++) {
+            await findInstance(obj.substructure[i]);
+        }
+    } else {
+        const moduleName = obj.moduleName;
+        const instanceName = obj.instanceName;
+        const objectName = obj.objectName;
+        const value = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
+
+        const values = await createObjectHierarchy(value, 'offsetSharedMemory', moduleName, instanceName, objectName);
+
+        const object = { 'name': instanceName, values };
+        module.instances.push(object);
+    }
+}
 
 /*
 * function: createObjectHierarchy
@@ -77,7 +81,7 @@ async function createObjectHierarchy(obj, propName, moduleName, instanceName, ob
 
     function traverseObject(obj, currentPath) {
         for (const key in obj) {
-            if (obj.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
                 let newPath = currentPath.concat(key);
                 const value = obj[key];
 

@@ -1,4 +1,3 @@
-
 import { dbusGateway } from './dbusGateway.js';
 
 export async function systemInformationManager(method, params) {

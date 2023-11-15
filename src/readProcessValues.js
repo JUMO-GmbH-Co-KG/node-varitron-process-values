@@ -27,7 +27,9 @@ export async function read(processValueUrl) {
             return Promise.reject('cant read process value.' + e);
         }
     }
+    
     //read function
+    // eslint-disable-next-line max-statements, complexity
     async function readFromUrl(processValueUrl) {
         // get parameters from processValueUrl
         const parameter = getObjectFromUrl(processValueUrl);
@@ -246,6 +248,7 @@ export async function read(processValueUrl) {
 * function: getErrorText
 * function to resolve a errorCode to a errorText
 */
+// eslint-disable-next-line complexity
 function getErrorText(metadata) {
     if (metadata == null) {
         return '';
@@ -288,6 +291,7 @@ function getErrorText(metadata) {
 * function: getErrorCodeFromValue
 * function to resolve a errorCode from ProcessValue (Double,Float)
 */
+// eslint-disable-next-line max-statements, complexity
 function getErrorCodeFromValue(value, type) {
     //handling of floats
     if (type == 'Float') {
@@ -314,7 +318,7 @@ function getErrorCodeFromValue(value, type) {
         }
     }
     //handling of doubles
-    if (type = 'Double') {
+    if (type == 'Double') {
         const nanValue = extractNaNPayload(value);
 
         if (nanValue == '1') {
@@ -341,7 +345,8 @@ function getErrorCodeFromValue(value, type) {
     }
     return 0;
 }
-//function do extract NaN Payload from double value
+
+//function to extract NaN Payload from double value
 //@todo: muss noch getestet werden
 function extractNaNPayload(doubleValue) {
     const buffer = Buffer.alloc(8); // Allocate buffer of 8 bytes

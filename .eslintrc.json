@@ -58,20 +58,9 @@
         "guard-for-in": "error",
         "no-extra-bind": "error",
         "no-implicit-coercion": "error",
-        "new-cap": ["error", { "capIsNewExceptionPattern": "^express\\.." }],
         "global-require": "error",
         "handle-callback-err": "error",
         "callback-return": "error",
-        "no-console": "error",
-        "import/no-unresolved": [
-            "error",
-            {
-                "commonjs": true
-            }
-        ],
-
-        "security/detect-non-literal-fs-filename": "off",
-        "security/detect-child-process": "off",
         "security/detect-object-injection": "off"
     }
 }

@@ -55,9 +55,6 @@ await write({
 const floatwritten2 = await read('ProcessData#EtherCatGateway#ProcessData#AnalogModuleInput#CTR04_5/ActualValues/ActualValue001');
 console.log('floatwritten2(456.123): ' + JSON.stringify(floatwritten2));
 
-console.log('ethercatvalue: ' + JSON.stringify(ethercatvalue));
-console.log('binaryoutput: ' + JSON.stringify(binaryoutput));
-
 // write single buffer
 await write({
     'processValueUrl': 'ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm',
