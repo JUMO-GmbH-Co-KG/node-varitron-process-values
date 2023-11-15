@@ -13,10 +13,10 @@
   "devDependencies": {
     "chai": "^4.3.10",
     "eslint": "^8.53.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-security": "^1.7.1",
     "mocha": "^10.2.0",
-    "node-gyp": "^10.0.1",
-    "sinon": "^17.0.1",
-    "sinon-chai": "^3.7.0"
+    "node-gyp": "^10.0.1"
   },
   "dependencies": {
     "dbus-next": "^0.10.2",
