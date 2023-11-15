@@ -32,7 +32,7 @@ export async function read(processValueUrl) {
             return Promise.reject('cant read process value.' + e);
         }
     }
-
+    //read function
     async function readFromUrl(processValueUrl) {
         // get parameters from processValueUrl
         const parameter = getObjectFromUrl(processValueUrl);
@@ -72,6 +72,7 @@ export async function read(processValueUrl) {
         console.log('byDescKey: ' + shmKey);
 
         console.log('attaching to shm...');
+        //set semaphore name based on buffer type
         const keyForBufferLocking = doubleBuffer ? 'WriteLock' : 'BufferLock';
         const readSemaphore = processDescription.key + 'Semaphore' + keyForBufferLocking;
         try {
@@ -159,27 +160,7 @@ export async function read(processValueUrl) {
             else if (object.type == 'Double') {
                 value = buf.readDoubleLE(offsetObject + offset);
                 if (object.sizeMetadata == 0) {
-                    if (value == 1e37) {
-                        metadata = 1;
-                    } else if (value == 2e37) {
-                        metadata = 2;
-                    } else if (value == 3e37) {
-                        metadata = 3;
-                    } else if (value == 4e37) {
-                        metadata = 4;
-                    } else if (value == 5e37) {
-                        metadata = 5;
-                    } else if (value == 6e37) {
-                        metadata = 6;
-                    } else if (value == 7e37) {
-                        metadata = 7;
-                    } else if (value == 8e37) {
-                        metadata = 8;
-                    } else if (value == 9e37) {
-                        metadata = 9;
-                    } else {
-                        metadata = 0;
-                    }
+                    metadata = getErrorCodeFromValue(value, object.type);
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
@@ -188,27 +169,7 @@ export async function read(processValueUrl) {
                 value = buf.readFloatLE(offsetObject + offset);
                 //read out metadata from process value
                 if (object.sizeMetadata == 0) {
-                    if (value == 1e37) {
-                        metadata = 1;
-                    } else if (value == 2e37) {
-                        metadata = 2;
-                    } else if (value == 3e37) {
-                        metadata = 3;
-                    } else if (value == 4e37) {
-                        metadata = 4;
-                    } else if (value == 5e37) {
-                        metadata = 5;
-                    } else if (value == 6e37) {
-                        metadata = 6;
-                    } else if (value == 7e37) {
-                        metadata = 7;
-                    } else if (value == 8e37) {
-                        metadata = 8;
-                    } else if (value == 9e37) {
-                        metadata = 9;
-                    } else {
-                        metadata = 0;
-                    }
+                    metadata = getErrorCodeFromValue(value, object.type);
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
@@ -328,5 +289,86 @@ function getErrorText(metadata) {
     }
     else {
         return "";
+    }
+}
+/*
+* function: getErrorCodeFromValue
+* function to resolve a errorCode from ProcessValue (Double,Float)
+*/
+function getErrorCodeFromValue(value, type) {
+
+    if (type == "Float") {
+        if (value == 1e37) {
+            return 1;
+        } else if (value == 2e37) {
+            return 2;
+        } else if (value == 3e37) {
+            return 3;
+        } else if (value == 4e37) {
+            return 4;
+        } else if (value == 5e37) {
+            return 5;
+        } else if (value == 6e37) {
+            return 6;
+        } else if (value == 7e37) {
+            return 7;
+        } else if (value == 8e37) {
+            return 8;
+        } else if (value == 9e37) {
+            return 9;
+        } else {
+            return 0;
+        }
+    }
+    if (type = "Double") {
+
+        const nanValue = extractNaNPayload(value);
+
+        if (nanValue == "1") {
+            return 1;
+        } else if (nanValue == "2") {
+            return 2;
+        } else if (nanValue == "3") {
+            return 3;
+        } else if (nanValue == "4") {
+            return 4;
+        } else if (nanValue == "5") {
+            return 5;
+        } else if (nanValue == "6") {
+            return 6;
+        } else if (nanValue == "7") {
+            return 7;
+        } else if (nanValue == "8") {
+            return 8;
+        } else if (nanValue == "9") {
+            return 9;
+        } else {
+            return 0;
+        }
+    }
+    return 0;
+}
+//function do extract NaN Payload from double value
+function extractNaNPayload(doubleValue) {
+    const buffer = Buffer.alloc(8); // Allocate buffer of 8 bytes
+    buffer.writeDoubleLE(doubleValue, 0); // Write the double value to the buffer
+
+    const uint64View = new BigUint64Array(buffer.buffer); // Create a view to interpret the buffer as a BigInt
+    const uint64Value = uint64View[0]; // Get the 64-bit unsigned integer representation
+
+    const exponent = (uint64Value >> 52n) & 0x7ffn; // Extract exponent bits
+    const mantissa = uint64Value & 0xfffffffffffffn; // Extract mantissa bits
+
+    if (exponent === 0x7ffn) {
+        // If the exponent bits are all 1s (indicating a NaN)
+        if (mantissa !== 0n) {
+            // If the mantissa is non-zero, it's a payload NaN
+            return mantissa.toString(16)
+
+        } else {
+            return "Standard NaN"; // No payload in the NaN
+        }
+    } else {
+        return "Not a NaN"; // The value is not NaN
     }
 }
