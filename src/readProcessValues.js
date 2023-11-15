@@ -297,6 +297,7 @@ function getErrorText(metadata) {
 */
 function getErrorCodeFromValue(value, type) {
 
+    //handling of floats
     if (type == "Float") {
         if (value == 1e37) {
             return 1;
@@ -320,6 +321,7 @@ function getErrorCodeFromValue(value, type) {
             return 0;
         }
     }
+    //handling of doubles
     if (type = "Double") {
 
         const nanValue = extractNaNPayload(value);
@@ -349,6 +351,7 @@ function getErrorCodeFromValue(value, type) {
     return 0;
 }
 //function do extract NaN Payload from double value
+//@todo: muss noch getestet werden
 function extractNaNPayload(doubleValue) {
     const buffer = Buffer.alloc(8); // Allocate buffer of 8 bytes
     buffer.writeDoubleLE(doubleValue, 0); // Write the double value to the buffer
