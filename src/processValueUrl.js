@@ -19,6 +19,7 @@ export function getObjectName(processValueUrl) {
     return substring;
 }
 
+//function to objectify process value url
 export function getObjectFromUrl(processValueUrl) {
     var parts = processValueUrl.split("#");
     var moduleName = parts[1];
@@ -40,7 +41,7 @@ export function getObjectFromUrl(processValueUrl) {
 
 
 }
-
+//function to return object from string
 export function byString(o, s) {
     s = s.replace(/\[(\w+)\]/g, '.$1'); // convert indexes to properties
     s = s.replace(/^\./, '');           // strip a leading dot

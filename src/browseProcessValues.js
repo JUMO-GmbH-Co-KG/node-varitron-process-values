@@ -61,7 +61,9 @@ export async function getProviderList() {
 }
 
 
-
+/*
+* function: createObjectHierarchy
+*/
 async function createObjectHierarchy(obj, propName, moduleName, instanceName, objectName) {
     const hierarchy = {};
 

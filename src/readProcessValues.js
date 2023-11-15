@@ -1,10 +1,8 @@
 import { getProcessDataDescription } from './systemInformationManager.js';
-import { getModuleName, getInstanceName, getObjectName, getObjectFromUrl, byString } from "./processValueUrl.js";
-import { createHash } from 'crypto';
-import { statSync } from 'fs';
+import { getObjectFromUrl, byString } from "./processValueUrl.js";
 
 import { native } from './importShm.js';
-import { isUtf8 } from 'buffer';
+
 
 
 
@@ -88,7 +86,9 @@ export async function read(processValueUrl) {
             //calculate general offset inside shared memory
             const offset = doubleBuffer ? OffsetManagementBuffer + activeReadBuffer * LengthSharedMemory : 0;
 
+            //processvalue
             let value;
+            //metadata (errorcode)
             let metadata;
 
             // *          Momentan sind die folgenden Datentypen implementiert:
@@ -159,7 +159,27 @@ export async function read(processValueUrl) {
             else if (object.type == 'Double') {
                 value = buf.readDoubleLE(offsetObject + offset);
                 if (object.sizeMetadata == 0) {
-                    metadata = null;
+                    if (value == 1e37) {
+                        metadata = 1;
+                    } else if (value == 2e37) {
+                        metadata = 2;
+                    } else if (value == 3e37) {
+                        metadata = 3;
+                    } else if (value == 4e37) {
+                        metadata = 4;
+                    } else if (value == 5e37) {
+                        metadata = 5;
+                    } else if (value == 6e37) {
+                        metadata = 6;
+                    } else if (value == 7e37) {
+                        metadata = 7;
+                    } else if (value == 8e37) {
+                        metadata = 8;
+                    } else if (value == 9e37) {
+                        metadata = 9;
+                    } else {
+                        metadata = 0;
+                    }
                 } else if (object.sizeMetadata == 4) {
                     metadata = buf.readUInt32LE(offsetMetadata + offset);
                 }
@@ -245,13 +265,18 @@ export async function read(processValueUrl) {
                 }
             }
 
+            const errorText = getErrorText(metadata);
+
             const result = {
                 "url": processValueUrl,
                 "value": value,
                 "type": object.type,
                 "readOnly": object.readOnly,
                 "unit": object.measurementRangeAttributes?.[0]?.unitText?.POSIX || '',
-                "metadata": metadata,
+                "error": {
+                    "errorCode": metadata,
+                    "errorText": errorText
+                }
             }
 
             return Promise.resolve(result);
@@ -263,3 +288,45 @@ export async function read(processValueUrl) {
 
 };
 
+/*
+* function: getErrorText
+* function to resolve a errorCode to a errorText
+*/
+function getErrorText(metadata) {
+    if (metadata == null) {
+        return "";
+    }
+    else if (metadata == 0) {
+        return "valid";
+    }
+    else if (metadata == 1) {
+        return "underrange";
+    }
+    else if (metadata == 2) {
+        return "overrange"
+    }
+    else if (metadata == 3) {
+        return "noValidInputValue"
+    }
+    else if (metadata == 4) {
+        return "divisionByZero"
+    }
+    else if (metadata == 5) {
+        return "incorrectMathematicValue"
+    }
+    else if (metadata == 6) {
+        return "invalidTemperature"
+    }
+    else if (metadata == 7) {
+        return "sensorShortCircuit"
+    }
+    else if (metadata == 8) {
+        return "sensorBreakage"
+    }
+    else if (metadata == 9) {
+        return "timeout"
+    }
+    else {
+        return "";
+    }
+}
