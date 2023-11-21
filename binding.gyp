@@ -21,7 +21,7 @@
                 "<!(node -p \"require('node-addon-api').gyp\")"
             ],
             "defines": [
-                "NAPI_CPP_EXCEPTIONS", "DESKTOP_BUILD"
+                "NAPI_CPP_EXCEPTIONS"
             ]
         }
     ]
