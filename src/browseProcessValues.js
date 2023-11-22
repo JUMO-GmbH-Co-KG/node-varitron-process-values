@@ -30,7 +30,7 @@ export async function getProviderList() {
         for (const instance of instances) {
             try {
                 for (let i = 0; i < instance.length; i++) {
-                    await findInstance(instance[i]);
+                    await findInstance(instance[i], module);
                 }
             } catch (e) {
                 console.log('cant get ProcessDescription for: ' + e);
@@ -45,10 +45,10 @@ export async function getProviderList() {
 /*
 * function: findInstance
 */
-async function findInstance(obj) {
+async function findInstance(obj, module) {
     if (Object.hasOwn(obj, 'substructure')) {
         for (let i = 0; i < obj.substructure.length; i++) {
-            await findInstance(obj.substructure[i]);
+            await findInstance(obj.substructure[i], module);
         }
     } else {
         const moduleName = obj.moduleName;
