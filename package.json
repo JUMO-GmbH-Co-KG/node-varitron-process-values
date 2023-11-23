@@ -19,7 +19,7 @@
     "node-gyp": "^9.4.1"
   },
   "dependencies": {
-    "dbus-next": "^0.10.2",
+    "@quadratclown/dbus-next": "^1.0.2",
     "node-addon-api": "^7.0.0"
   },
   "publishConfig": {
