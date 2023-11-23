@@ -1,5 +1,5 @@
 {
-  "name": "jumo-varitron-process-values",
+  "name": "@jumo/varitron-process-values",
   "version": "1.0.3",
   "description": "Node.js module to browse, read and write JUMO variTRON process values.",
   "main": "index.js",
