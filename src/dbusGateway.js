@@ -1,4 +1,4 @@
-import dbus from 'dbus-next';
+import dbus from '@quadratclown/dbus-next';
 import { parse } from './dbusReply.js';
 
 const dBusServicePrefix = 'de.jupiter.';
