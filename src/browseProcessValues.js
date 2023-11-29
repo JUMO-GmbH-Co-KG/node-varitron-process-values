@@ -46,7 +46,7 @@ export async function getProviderList() {
 * function: findInstance
 */
 async function findInstance(obj, module) {
-    if (Object.hasOwn(obj, 'substructure')) {
+    if (Object.prototype.hasOwnProperty.call(obj, 'substructure')) {
         for (let i = 0; i < obj.substructure.length; i++) {
             await findInstance(obj.substructure[i], module);
         }
@@ -96,7 +96,7 @@ async function createObjectHierarchy(obj, propName, moduleName, instanceName, ob
                     path = path.replace(/\[(\d+)\]/g, '#value[$1]');
                     newPath = newPath.slice(0, -1);
                     const filteredArray = newPath.filter(item => item !== 'value');
-                    const unit = Object.hasOwn(obj, 'measurementRangeAttributes') ? obj.measurementRangeAttributes[0].unitText.POSIX : '';
+                    const unit = Object.prototype.hasOwnProperty.call(obj, 'measurementRangeAttributes') ? obj.measurementRangeAttributes[0].unitText.POSIX : '';
                     addToHierarchy(filteredArray, {
                         name: newPath[newPath.length - 1],
                         URL: 'ProcessData#' + moduleName + '#' + objectName + '#' + instanceName + '#' + path,
@@ -114,4 +114,3 @@ async function createObjectHierarchy(obj, propName, moduleName, instanceName, ob
 
     return Promise.resolve(hierarchy);
 }
-
