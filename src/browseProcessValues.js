@@ -60,7 +60,7 @@ async function findInstance(obj, module) {
         } catch (error) {
             console.error('Cant get ProcessDataDescription for: moduleName: ' + moduleName + ' instanceName: '
                 + instanceName + ' objectName: ' + objectName + ' Error: ' + error);
-            Promise.reject(error);
+            return Promise.reject(error);
         }
         const values = await createObjectHierarchy(value, 'offsetSharedMemory', moduleName, instanceName, objectName);
 
