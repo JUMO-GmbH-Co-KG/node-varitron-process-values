@@ -62,7 +62,7 @@ async function findInstance(obj, module) {
                 + instanceName + ' objectName: ' + objectName + ' Error: ' + error);
             return Promise.reject(error);
         }
-        const values = await createObjectHierarchy(value, 'offsetSharedMemory', moduleName, instanceName, objectName);
+        const values = createObjectHierarchy(value, 'offsetSharedMemory', moduleName, instanceName, objectName);
 
         const object = { 'name': instanceName, values };
         module.instances.push(object);
@@ -72,7 +72,7 @@ async function findInstance(obj, module) {
 /*
 * function: createObjectHierarchy
 */
-async function createObjectHierarchy(obj, propName, moduleName, instanceName, objectName) {
+function createObjectHierarchy(obj, propName, moduleName, instanceName, objectName) {
     const hierarchy = {};
 
     function addToHierarchy(path, objToAdd) {
@@ -118,5 +118,5 @@ async function createObjectHierarchy(obj, propName, moduleName, instanceName, ob
 
     traverseObject(obj, []);
 
-    return Promise.resolve(hierarchy);
+    return hierarchy;
 }
