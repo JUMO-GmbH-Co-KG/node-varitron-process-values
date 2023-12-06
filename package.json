@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "npx mocha",
-    "lint": "npx eslint src/ test/ example/"
+    "lint": "npx eslint index.js src/ test/ example/"
   },
   "license": "MIT",
   "author": "JUMO GmbH & Co. KG",
