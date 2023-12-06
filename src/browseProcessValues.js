@@ -1,4 +1,5 @@
-import { getRegisteredProvidersList, getListOfInstances, getProcessDataDescription } from './systemInformationManager.js';
+import { getRegisteredProvidersList, getListOfInstances } from './systemInformationManager.js';
+import { getProcessDataDescription } from './providerHandler.js';
 
 // eslint-disable-next-line max-statements
 export async function getProviderList() {

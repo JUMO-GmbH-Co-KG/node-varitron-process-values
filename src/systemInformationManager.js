@@ -1,6 +1,6 @@
 import { dbusGateway } from './dbusGateway.js';
 
-export async function systemInformationManager(method, params) {
+async function systemInformationManager(method, params) {
     const serviceDescription = {
         serviceName: 'SystemInformationManager',
         objectPath: '/Information',
@@ -21,20 +21,6 @@ export async function getRegisteredProvidersList(language, providerType) {
 export async function getListOfInstances(moduleName, objectName, language) {
     const method = 'getListOfInstances';
     const params = ['node-red', language];
-    const serviceDescription = {
-        serviceName: moduleName,
-        objectPath: '/' + objectName,
-        interfaceName: 'Interface.ProcessDecription',
-        method,
-        params,
-    };
-
-    return dbusGateway(serviceDescription);
-}
-
-export async function getProcessDataDescription(moduleName, instanceName, objectName, language) {
-    const method = 'getProcessDataDescription';
-    const params = [instanceName, language];
     const serviceDescription = {
         serviceName: moduleName,
         objectPath: '/' + objectName,

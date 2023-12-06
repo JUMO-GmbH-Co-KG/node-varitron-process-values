@@ -1,4 +1,4 @@
-import { getProcessDataDescription } from './systemInformationManager.js';
+import { getProcessDataDescription } from './providerHandler.js';
 import { getObjectFromUrl, byString } from './processValueUrl.js';
 
 import { native } from './importShm.js';
