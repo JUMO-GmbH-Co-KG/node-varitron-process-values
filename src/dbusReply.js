@@ -23,7 +23,6 @@ export function parse(result) {
         // schema of the jupiter dbus response
         // result.value = [ errCode, errText, <data> ]
         // if errCode === 0 then data is filled
-        // if (result.value.length !== 3) throw new Error(`D-Bus response length is ${result.length} instead of 3.`); // @todo uncomment this for EWJUPITER-2626
         const errorCode = result.value[0].value;
         if (errorCode !== 0) {
             const errorText = result.value[1].value;
