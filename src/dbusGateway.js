@@ -2,20 +2,13 @@ import dbus from '@quadratclown/dbus-next';
 import { parse } from './dbusReply.js';
 
 const dBusServicePrefix = 'de.jupiter.';
-const defaultDBusName = 'system';
 
 let staticDBusReference;
 
 function getBus() {
     if (!staticDBusReference) {
-        const dBusName = (() => {
-            const envDBusName = process.env.DBUS_USE;
-            if (envDBusName !== 'system' && envDBusName !== 'session') {
-                return defaultDBusName;
-            }
-            return envDBusName;
-        })();
-        if (dBusName === 'system') {
+        // use the system bus for device and session bus for desktop
+        if (process.arch === 'arm') {
             staticDBusReference = dbus.systemBus();
         } else {
             staticDBusReference = dbus.sessionBus();
