@@ -64,6 +64,11 @@ async function recursiveFindInstance(instance) {
         const instanceName = instance.instanceName;
         const objectName = instance.objectName;
 
+        // filter out 'EtherCatGateway' instances With 'Selector' or 'Initialization' because we cannot use them
+        if (moduleName === 'EtherCatGateway' && (instanceName.match(/\d{6}\/\w+Selector/) || instanceName.match(/\w+Initialization/))) {
+            return result;
+        }
+
         try {
             const processDataDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
 
