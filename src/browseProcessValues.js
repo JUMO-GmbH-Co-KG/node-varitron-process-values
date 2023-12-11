@@ -1,123 +1,138 @@
 import { getRegisteredProvidersList, getListOfInstances } from './systemInformationManager.js';
 import { getProcessDataDescription } from './providerHandler.js';
 
-// eslint-disable-next-line max-statements
-export async function getProviderList() {
+
+async function getProcessValueProvidingModules() {
     const modules = [];
-    const pvalues = [];
     try {
-        const processdata = await getRegisteredProvidersList('us_EN', 'ProcessData');
-        for (const pdata of processdata) {
-            modules.push({ 'moduleName': pdata.moduleName, 'objectName': pdata.objectName });
+        const providerList = await getRegisteredProvidersList('us_EN', 'ProcessData');
+        for (const provider of providerList) {
+            modules.push({ 'moduleName': provider.moduleName, 'objectName': provider.objectName });
         }
     } catch (e) {
-        console.log('cant get RegisteredProviderList.' + e);
-        return Promise.reject(e);
+        return Promise.reject(new Error(`Can't get provider list: ${e}`));
     }
-    for (const mod of modules) {
-        const instances = [];
-        const module = {
-            'moduleName': mod.moduleName,
-            'objectName': mod.objectName,
-            'instances': []
-        };
-        try {
-            const instance = await getListOfInstances(mod.moduleName, mod.objectName, 'us_EN');
-            instances.push(instance);
-        } catch (e) {
-            console.log('cant get list of instances for: ' + e);
-            return Promise.reject(e);
-        }
-        for (const instance of instances) {
+    return Promise.resolve(modules);
+}
+
+// eslint-disable-next-line max-statements
+export async function getProviderList() {
+    try {
+        const moduleList = await getProcessValueProvidingModules();
+        const providerList = [];
+        for (const module of moduleList) {
             try {
-                for (let i = 0; i < instance.length; i++) {
-                    await findInstance(instance[i], module);
+                // get all instances of a module
+                const instanceList = await getListOfInstances(module.moduleName, module.objectName, 'us_EN');
+
+                const result = [];
+                for (const instance of instanceList) {
+                    try {
+                        result.push(...await recursiveFindInstance(instance));
+                    } catch (e) {
+                        console.log(`Can't get ProcessDescription for:${e}`);
+                        return Promise.reject(e);
+                    }
                 }
+                providerList.push({
+                    moduleName: module.moduleName,
+                    objectName: module.objectName,
+                    instances: result,
+                });
             } catch (e) {
-                console.log('cant get ProcessDescription for: ' + e);
-                return Promise.reject(e);
+                return Promise.reject(new Error(`Can't get list of instances for ${module.moduleName}.${module.objectName}: ` + e));
             }
         }
-        pvalues.push(module);
+        return Promise.resolve(providerList);
+    } catch (e) {
+        return Promise.reject(e);
     }
-    return Promise.resolve(pvalues);
 }
 
 /*
 * function: findInstance
 */
-async function findInstance(obj, module) {
-    if (Object.prototype.hasOwnProperty.call(obj, 'substructure')) {
-        for (let i = 0; i < obj.substructure.length; i++) {
-            await findInstance(obj.substructure[i], module);
+// eslint-disable-next-line max-statements
+async function recursiveFindInstance(instance) {
+    const result = [];
+    if (Object.prototype.hasOwnProperty.call(instance, 'substructure')) {
+        for (const element of instance.substructure) {
+            result.push(...await recursiveFindInstance(element));
         }
     } else {
-        const moduleName = obj.moduleName;
-        const instanceName = obj.instanceName;
-        const objectName = obj.objectName;
-        let value;
-        try {
-            value = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
-        } catch (error) {
-            console.error('Cant get ProcessDataDescription for: moduleName: ' + moduleName + ' instanceName: '
-                + instanceName + ' objectName: ' + objectName + ' Error: ' + error);
-            return Promise.reject(error);
-        }
-        const values = createObjectHierarchy(value, 'offsetSharedMemory', moduleName, instanceName, objectName);
+        const moduleName = instance.moduleName;
+        const instanceName = instance.instanceName;
+        const objectName = instance.objectName;
 
-        const object = { 'name': instanceName, values };
-        module.instances.push(object);
+        try {
+            const processDataDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
+
+            const structuredProcessDataDescription = createObjectHierarchy(processDataDescription, moduleName, instanceName, objectName);
+
+            const object = { 'name': instanceName, values: structuredProcessDataDescription };
+            result.push(object);
+        } catch (error) {
+            const errMsg = `Can't get ProcessDataDescription for module: ${moduleName},  instance: ${instanceName}, object: ${objectName}: ${error}`;
+            return Promise.reject(new Error(errMsg));
+        }
     }
+    return result;
 }
 
 /*
 * function: createObjectHierarchy
 */
-function createObjectHierarchy(obj, propName, moduleName, instanceName, objectName) {
-    const hierarchy = {};
-
-    function addToHierarchy(path, objToAdd) {
-        let currentLevel = hierarchy;
+function createObjectHierarchy(obj, moduleName, instanceName, objectName) {
+    function setDeepProperty(destination, path, obj) {
+        let currentLevel = destination;
         path.forEach((key, index) => {
             if (!currentLevel[key]) {
-                currentLevel[key] = index === path.length - 1 ? objToAdd : {};
+                currentLevel[key] = index === path.length - 1 ? obj : {};
             }
             currentLevel = currentLevel[key];
         });
     }
 
-    function traverseObject(obj, currentPath) {
-        for (const key in obj) {
-            if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                let newPath = currentPath.concat(key);
-                const value = obj[key];
+    function recursiveFindLeafObjects(destination, source, objectPath) {
+        for (const key in source) {
+            if (Object.prototype.hasOwnProperty.call(source, key)) {
+                const value = source[key];
 
                 if (typeof value === 'object') {
-                    // Recursively traverse nested objects
-                    traverseObject(value, newPath);
-                } else if (key === propName) {
-                    // If the property name matches, add the object to the hierarchy
-                    let path = newPath.slice(0, -1).join('.');
-                    path = path.replace(/value\./g, '');
-                    path = path.replace(/\./g, '/');
-                    path = path.replace(/\[(\d+)\]/g, '#value[$1]');
-                    newPath = newPath.slice(0, -1);
-                    const filteredArray = newPath.filter(item => item !== 'value');
-                    const unit = Object.prototype.hasOwnProperty.call(obj, 'measurementRangeAttributes') ? obj.measurementRangeAttributes[0].unitText.POSIX : '';
-                    addToHierarchy(filteredArray, {
-                        name: newPath[newPath.length - 1],
-                        URL: 'ProcessData#' + moduleName + '#' + objectName + '#' + instanceName + '#' + path,
-                        type: obj.type,
-                        readOnly: obj.readOnly,
-                        unit
+                    const nextPath = objectPath.concat(key);
+                    recursiveFindLeafObjects(destination, value, nextPath);
+                } else if (key === 'offsetSharedMemory') {
+                    // If the property name is 'offsetSharedMemory', add the object to the hierarchy
 
+                    // last element in the path is the name of the element
+                    const name = objectPath.slice(-1)[0];
+
+                    // cleanPath is the path to the element without 'value' fields
+                    const cleanPath = objectPath.filter(item => item !== 'value');
+
+                    // pathName is the path to the element as a string, divided by '/'
+                    const pathName = cleanPath.join('/');
+
+                    // if we have array indices in the path, we need to replace them with '#value[index]'
+                    // pathName = pathName.replace(/\[(\d+)\]/g, '#value[$1]');
+
+                    // add unit if unit is available
+                    const unit = Object.prototype.hasOwnProperty.call(source, 'measurementRangeAttributes') ? source.measurementRangeAttributes[0].unitText.POSIX : '';
+
+                    setDeepProperty(destination, cleanPath, {
+                        name,
+                        URL: `ProcessData#${moduleName}#${objectName}#${instanceName}#${pathName}`,
+                        type: source.type,
+                        readOnly: source.readOnly,
+                        unit
                     });
                 }
             }
         }
     }
 
-    traverseObject(obj, []);
-
-    return hierarchy;
+    // recursively cycle the source object, find leafs and add them to the destination object
+    const processValueHierarchy = {};
+    recursiveFindLeafObjects(processValueHierarchy, obj, []);
+    return processValueHierarchy;
 }
