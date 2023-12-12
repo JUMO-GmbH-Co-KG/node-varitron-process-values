@@ -30,7 +30,7 @@ export async function getProviderList() {
                     try {
                         result.push(...await recursiveFindInstance(instance));
                     } catch (e) {
-                        console.log(`Can't get ProcessDescription for:${e}`);
+                        console.log(`Can't get ProcessDescription for: ${e}`);
                         return Promise.reject(e);
                     }
                 }
@@ -63,6 +63,11 @@ async function recursiveFindInstance(instance) {
         const moduleName = instance.moduleName;
         const instanceName = instance.instanceName;
         const objectName = instance.objectName;
+
+        // filter out modules without instance or object (wtrans gateway has such a thing)
+        if (!instanceName || !objectName) {
+            return result;
+        }
 
         // filter out 'EtherCatGateway' instances With 'Selector' or 'Initialization' because we cannot use them
         if (moduleName === 'EtherCatGateway' && (instanceName.match(/\d{6}\/\w+Selector/) || instanceName.match(/\w+Initialization/))) {
