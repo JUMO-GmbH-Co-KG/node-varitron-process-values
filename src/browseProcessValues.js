@@ -15,8 +15,14 @@ async function getProcessValueProvidingModules() {
     return Promise.resolve(modules);
 }
 
+//buffer for the provider list
+let providerListBuffer;
 // eslint-disable-next-line max-statements
 export async function getProviderList() {
+    //if their is a providerListBuffer resolve to buffer
+    if (providerListBuffer != undefined) {
+        return Promise.resolve(providerListBuffer);
+    }
     try {
         const moduleList = await getProcessValueProvidingModules();
         const providerList = [];
@@ -43,6 +49,7 @@ export async function getProviderList() {
                 return Promise.reject(new Error(`Can't get list of instances for ${module.moduleName}.${module.objectName}: ` + e));
             }
         }
+        providerListBuffer = providerList;
         return Promise.resolve(providerList);
     } catch (e) {
         return Promise.reject(e);

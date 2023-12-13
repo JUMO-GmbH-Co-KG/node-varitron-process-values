@@ -1,8 +1,6 @@
 import { getProcessDataDescription } from './providerHandler.js';
 import { getObjectFromUrl, byString } from './processValueUrl.js';
-
 import { native } from './importShm.js';
-
 
 export async function read(processValueUrl) {
     if (Array.isArray(processValueUrl)) {
@@ -27,12 +25,13 @@ export async function read(processValueUrl) {
             return Promise.reject('cant read process value.' + e);
         }
     }
-    
+
     //read function
     // eslint-disable-next-line max-statements, complexity
     async function readFromUrl(processValueUrl) {
         // get parameters from processValueUrl
         const parameter = getObjectFromUrl(processValueUrl);
+
         // get ProcessDataDescription from DBus
         const processDescription = await getProcessDataDescription(
             parameter.moduleName,

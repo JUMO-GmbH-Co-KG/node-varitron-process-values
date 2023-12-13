@@ -1,5 +1,5 @@
 import { getProcessDataDescription } from './providerHandler.js';
-import { getModuleName, getInstanceName, getObjectName, getObjectFromUrl, byString } from './processValueUrl.js';
+import { getObjectFromUrl, byString } from './processValueUrl.js';
 import { native } from './importShm.js';
 
 export async function write(object) {
@@ -34,13 +34,14 @@ export async function write(object) {
 
 // eslint-disable-next-line max-statements, complexity
 async function writeValue(processValueUrl, processValue) {
-    // Parameter is a value
-    const moduleName = getModuleName(processValueUrl);
-    const instanceName = getInstanceName(processValueUrl);
-    const objectName = getObjectName(processValueUrl);
-
     const parameter = getObjectFromUrl(processValueUrl);
-    const processDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
+
+    // get ProcessDataDescription from DBus
+    const processDescription = await getProcessDataDescription(
+        parameter.moduleName,
+        parameter.instanceName,
+        parameter.objectName,
+        'us_EN');
 
     const object = byString(processDescription, parameter.parameterUrl);
     if (object.readOnly) {
@@ -173,6 +174,7 @@ async function writeValue(processValueUrl, processValue) {
         else if (object.type == 'Selector') {
             throw new Error('writing process values: unhandled type: Selector');
         }
+
         return Promise.resolve();
     } catch (e) {
         console.error(e);
