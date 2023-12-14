@@ -1,5 +1,5 @@
 import { getProcessDataDescription } from './providerHandler.js';
-import { getObjectFromUrl, byString } from './processValueUrl.js';
+import { getObjectFromUrl, byString as getNestedProcessValueDescription } from './processValueUrl.js';
 import { native } from './importShm.js';
 
 export async function write(object) {
@@ -34,22 +34,24 @@ export async function write(object) {
 
 // eslint-disable-next-line max-statements, complexity
 async function writeValue(processValueUrl, processValue) {
-    const parameter = getObjectFromUrl(processValueUrl);
+    const urlObject = getObjectFromUrl(processValueUrl);
 
     // get ProcessDataDescription from DBus
     const processDescription = await getProcessDataDescription(
-        parameter.moduleName,
-        parameter.instanceName,
-        parameter.objectName,
+        urlObject.moduleName,
+        urlObject.instanceName,
+        urlObject.objectName,
         'us_EN');
 
-    const object = byString(processDescription, parameter.parameterUrl);
-    if (object.readOnly) {
+    const valueDescription = getNestedProcessValueDescription(processDescription, urlObject.parameterUrl);
+    if (valueDescription.readOnly) {
         return Promise.reject('Not allowed to write read Only process values');
     }
-    const offsetObject = object.offsetSharedMemory;
-    //const offsetMetadata = object.offsetSharedMemory + object.relativeOffsetMetadata;
-
+    const offsetValue = valueDescription.offsetSharedMemory;
+    //get offset from Metadata of the object in shared memory
+    const offsetMetadata = valueDescription.offsetSharedMemory + valueDescription.relativeOffsetMetadata;
+    //get size of Metdadata of the object in shared memory
+    const sizeMetadata = valueDescription.sizeMetadata;
     const OffsetManagementBuffer = 12;
     // double buffered shared memory
     //const size = 2 * LengthSharedMemory + OffsetManagementBuffer; //748
@@ -96,62 +98,58 @@ async function writeValue(processValueUrl, processValue) {
         // *          Selection - QString
         // *          Selector - QString
 
-        if (object.type == 'ShortInteger') {
+        if (valueDescription.type == 'ShortInteger') {
             const int16Value = Buffer.alloc(2);
             int16Value.writeInt16LE(processValue);
-            try {
-                memory.write(int16Value, offsetObject + offset, 2);
-            } catch (e) {
-                return Promise.reject('Unable to write shared memory.' + e);
-            }
+            memory.write(int16Value, offsetValue + offset, 2);
         }
-        else if (object.type == 'UnsignedShortInteger') {
+        else if (valueDescription.type == 'UnsignedShortInteger') {
             const uint16Value = Buffer.alloc(2);
             uint16Value.writeUInt16LE(processValue);
-            memory.write(uint16Value, offsetObject + offset, 2);
+            memory.write(uint16Value, offsetValue + offset, 2);
         }
-        else if (object.type == 'Integer') {
+        else if (valueDescription.type == 'Integer') {
             const int32Value = Buffer.alloc(4);
             int32Value.writeInt32LE(processValue);
-            memory.write(int32Value, offsetObject + offset, 4);
+            memory.write(int32Value, offsetValue + offset, 4);
         }
-        else if (object.type == 'UnsignedInteger') {
+        else if (valueDescription.type == 'UnsignedInteger') {
             const uint32Value = Buffer.alloc(4);
             uint32Value.writeUInt32LE(processValue);
-            memory.write(uint32Value, offsetObject + offset, 4);
+            memory.write(uint32Value, offsetValue + offset, 4);
         }
-        else if (object.type == 'LongLong') {
+        else if (valueDescription.type == 'LongLong') {
             const long = Buffer.alloc(8);
             long.writeBigInt64LE(processValue);
-            memory.write(long, offsetObject + offset, 8);
+            memory.write(long, offsetValue + offset, 8);
         }
-        else if (object.type == 'UnsignedLongLong') {
+        else if (valueDescription.type == 'UnsignedLongLong') {
             const ulong = Buffer.alloc(8);
             ulong.writeUBigInt64LE(processValue);
-            memory.write(ulong, offsetObject + offset, 8);
+            memory.write(ulong, offsetValue + offset, 8);
         }
-        else if (object.type == 'Double') {
+        else if (valueDescription.type == 'Double') {
             const double = Buffer.alloc(8);
             double.writeDoubleLE(processValue);
-            memory.write(double, offsetObject + offset, 8);
+            memory.write(double, offsetValue + offset, 8);
         }
-        else if (object.type == 'Float') {
+        else if (valueDescription.type == 'Float') {
             const float = Buffer.alloc(4);
             float.writeFloatLE(processValue);
-            memory.write(float, offsetObject + offset, 4);
+            memory.write(float, offsetValue + offset, 4);
         }
-        else if (object.type == 'Boolean') {
-            if (object.sizeValue == 4) {
+        else if (valueDescription.type == 'Boolean') {
+            if (valueDescription.sizeValue == 4) {
                 const bool = Buffer.alloc(4);
                 bool.writeUInt32LE(processValue);
-                memory.write(bool, offsetObject + offset, 4);
-            } else if (object.sizeValue == 1) {
+                memory.write(bool, offsetValue + offset, 4);
+            } else if (valueDescription.sizeValue == 1) {
                 const bool = Buffer.alloc(1);
                 bool.writeUInt8(processValue);
-                memory.write(bool, offsetObject + offset, 1);
+                memory.write(bool, offsetValue + offset, 1);
             }
         }
-        else if (object.type == 'Bit') {
+        else if (valueDescription.type == 'Bit') {
             // let byte = buf.readUInt8(offsetObject + offset);
             // if (processValue) {
             //     // Set the bit (1) in the byte at the specified position
@@ -163,21 +161,27 @@ async function writeValue(processValueUrl, processValue) {
             // const bytebuffer = Buffer.alloc(1);
             // bytebuffer.writeUInt8(byte);
             // memory.write(bytebuffer, offsetObject + offset, 1);
-            memory.writeByte(object.bitMask, processValue, offsetObject + offset);
+            memory.writeByte(valueDescription.bitMask, processValue, offsetValue + offset);
         }
-        else if (object.type == 'String') {
+        else if (valueDescription.type == 'String') {
             throw new Error('writing process values: unhandled type: String');
         }
-        else if (object.type == 'Selection') {
+        else if (valueDescription.type == 'Selection') {
             throw new Error('writing process values: unhandled type: Selection');
         }
-        else if (object.type == 'Selector') {
+        else if (valueDescription.type == 'Selector') {
             throw new Error('writing process values: unhandled type: Selector');
+        }
+
+        //write errorcode 0 after writing
+        if (sizeMetadata == 4) {
+            const metadataValue = Buffer.alloc(4);
+            metadataValue.writeInt32LE(0);
+            memory.write(metadataValue, offsetMetadata, 4);
         }
 
         return Promise.resolve();
     } catch (e) {
-        console.error(e);
         return Promise.reject(e);
     }
 }
