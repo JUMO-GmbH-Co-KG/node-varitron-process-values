@@ -59,7 +59,7 @@ export async function getProviderList() {
 /*
 * function: findInstance
 */
-// eslint-disable-next-line max-statements
+// eslint-disable-next-line max-statements, complexity
 async function recursiveFindInstance(instance) {
     const result = [];
     if (Object.prototype.hasOwnProperty.call(instance, 'substructure')) {
@@ -81,11 +81,21 @@ async function recursiveFindInstance(instance) {
             return result;
         }
 
+        // filter out 'RealTimeScheduler' instances with 'DebugData' because they are for internal use only
+        if (moduleName === 'RealTimeScheduler' && instanceName.endsWith('DebugData')) {
+            // ProcessData#RealTimeScheduler#ProcessData#RealTimeThread01/RealTimeThreadModules/Groups/Group01/DebugData#Parameter1
+            return result;
+        }
+
+        // filter out 'RealTimeScheduler' instances with 'ThreadData' because they are for internal use only
+        // if (moduleName === 'RealTimeScheduler' && instanceName.endsWith('ThreadData')) {
+        //     //ProcessData#RealTimeScheduler#ProcessData#RealTimeThread01/ThreadData#AverageValue
+        //     return result;
+        // }        
+
         try {
             const processDataDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
-
             const structuredProcessDataDescription = createObjectHierarchy(processDataDescription, moduleName, instanceName, objectName);
-
             const object = { 'name': instanceName, values: structuredProcessDataDescription };
             result.push(object);
         } catch (error) {
