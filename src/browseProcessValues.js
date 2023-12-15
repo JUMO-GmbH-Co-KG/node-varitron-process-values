@@ -36,8 +36,8 @@ export async function getProviderList() {
                     try {
                         result.push(...await recursiveFindInstance(instance));
                     } catch (e) {
-                        console.log(`Can't get ProcessDescription for: ${e}`);
-                        return Promise.reject(e);
+                        const errMsg = `Can't get ProcessDescription for: ${e}`;
+                        return Promise.reject(new Error(errMsg));
                     }
                 }
                 providerList.push({
@@ -52,7 +52,7 @@ export async function getProviderList() {
         providerListBuffer = providerList;
         return Promise.resolve(providerList);
     } catch (e) {
-        return Promise.reject(e);
+        return Promise.reject(new Error(`Unable to getProviderList: ${e}`));
     }
 }
 
@@ -130,7 +130,7 @@ function createObjectHierarchy(obj, moduleName, instanceName, objectName) {
                     // pathName is the path to the element as a string, divided by '/'
                     const pathName = cleanPath.join('/');
 
-                    // if we have array indices in the path, we need to replace them with '#value[index]'
+                    // if we use array indices in the path, we need to replace them with '#value[index]'
                     // pathName = pathName.replace(/\[(\d+)\]/g, '#value[$1]');
 
                     // add unit if unit is available

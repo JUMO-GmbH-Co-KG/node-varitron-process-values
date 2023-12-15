@@ -12,12 +12,11 @@ console.log('processValue2: ' + JSON.stringify(processValue2));
 const processValue3 = await read('ProcessData#RealTimeScheduler#ProcessData#RealTimeThread01/ThreadData#AverageValue');
 console.log('processValue3: ' + JSON.stringify(processValue3));
 
-
 // read boolean
 const processValue4 = await read('ProcessData#SpsConfigurationManager#ConfigurationProcessData#SharedMemory#BinaryValues001');
 console.log('processValue4: ' + JSON.stringify(processValue4));
 
 // read and write bit (ethercatgateway)
-const binaryoutput = await read('ProcessData#EtherCatGateway#ProcessData#BinaryModuleOutput#DIO12_6/BinaryOutputs/DO001');
-console.log('binaryoutput: ' + JSON.stringify(binaryoutput));
+//const binaryoutput = await read('ProcessData#EtherCatGateway#ProcessData#BinaryModuleOutput#DIO12_6/BinaryOutputs/DO001');
+//console.log('binaryoutput: ' + JSON.stringify(binaryoutput));
 

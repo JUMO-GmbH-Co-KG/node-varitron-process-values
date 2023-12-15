@@ -1,7 +1,7 @@
 {
     "targets": [
         {
-            "target_name": "shared_memory",
+            "target_name": "shared-memory",
             "cflags!": [
                 "-fno-exceptions"
             ],
@@ -9,7 +9,7 @@
                 "-fno-exceptions"
             ],
             "sources": [
-                "src/c++/shared_memory.cpp",
+                "src/c++/SharedMemory.cpp",
                 "src/c++/SystemVKey.cpp",
                 "src/c++/SystemVSemaphore.cpp",
                 "src/c++/SystemVSemaphoreBaseClass.cpp"

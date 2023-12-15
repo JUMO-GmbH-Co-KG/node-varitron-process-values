@@ -1,4 +1,4 @@
-#include "shared_memory.hpp"
+#include "SharedMemory.hpp"
 #include <v8.h>
 #include <node.h>
 #include <node_buffer.h>
@@ -28,14 +28,6 @@ std::string getErrnoAsString()
     return strerror(errno);
 }
 
-class shared_memory::extra_info
-{
-public:
-    explicit extra_info(int id) : id(id) {}
-
-    int id;
-};
-
 enum class ActiveBuffer
 {
     buffer1,
@@ -49,66 +41,68 @@ struct ManagementBuffer
     ck_sequence_t seqlock;
 };
 
-void shared_memory::init(Napi::Env env, Napi::Object &exports)
+void SharedMemory::init(Napi::Env env, Napi::Object &exports)
 {
-    Napi::Function func = DefineClass(env, "shared_memory", {
-                                                                InstanceMethod("writeByte", &shared_memory::writeDataByte, napi_enumerable),
-                                                                InstanceMethod("write", &shared_memory::writeData, napi_enumerable),
-                                                                // InstanceMethod("read", &shared_memory::readString, napi_enumerable),
-                                                                InstanceMethod("readBuffer", &shared_memory::readBuffer, napi_enumerable),
-                                                                InstanceAccessor("buffer", &shared_memory::readBuffer, &shared_memory::setBuffer, napi_enumerable),
+    Napi::Function func = DefineClass(env, "SharedMemory", {
+                                                                InstanceMethod("writeByte", &SharedMemory::writeByte, napi_enumerable),
+                                                                InstanceMethod("write", &SharedMemory::writeData, napi_enumerable),
+                                                                InstanceMethod("readBuffer", &SharedMemory::readBuffer, napi_enumerable),
+                                                                InstanceAccessor("buffer", &SharedMemory::readBuffer, &SharedMemory::setBuffer, napi_enumerable),
                                                             });
 
     auto constructor = new Napi::FunctionReference();
     *constructor = Napi::Persistent(func);
 
-    exports.Set("shared_memory", func);
+    exports.Set("SharedMemory", func);
     env.SetInstanceData<Napi::FunctionReference>(constructor);
 }
 
-shared_memory::shared_memory(const Napi::CallbackInfo &info)
+SharedMemory::SharedMemory(const Napi::CallbackInfo &info)
     : ObjectWrap(info), m_semaphoreLock(info[3].ToString().Utf8Value(), static_cast<SystemVSemaphoreBaseClass::CreationType>(info[4].ToNumber().Int32Value()))
 {
     // CHECK_ARGS(napi_tools::string, napi_tools::number);
     std::string name = info[0].ToString().Utf8Value();
 
-    size = info[1].ToNumber().Int32Value();
-    if (size <= 0)
+    m_size = info[1].ToNumber().Int32Value();
+    if (m_size <= 0)
     {
         throw Napi::TypeError::New(info.Env(), "The buffer size must be greater than zero");
     }
 
-    Value().DefineProperties({Napi::PropertyDescriptor::Value("size", Napi::Number::From(info.Env(), size),
+    Value().DefineProperties({Napi::PropertyDescriptor::Value("size", Napi::Number::From(info.Env(), m_size),
                                                               napi_enumerable),
                               Napi::PropertyDescriptor::Value("name", info[0].ToString(),
                                                               napi_enumerable)});
 
-    doublebuffer = info[2].ToBoolean();
+    m_isDoubleBuffer = info[2].ToBoolean();
 
     int shmFileDescriptor = shm_open(name.c_str(), O_RDWR, 0666);
+
+    #ifdef DEBUG
     std::cout << "(native) shmFileDescriptor " << shmFileDescriptor << " " << errno << endl;
+    #endif
+
     if (shmFileDescriptor < 0)
     {
         throw Napi::Error::New(info.Env(), "Could not get the shared memory segment: " + getErrnoAsString());
     }
-    else
-    {
-        extraInfo = std::make_shared<extra_info>(shmFileDescriptor);
-    }
 
-    buffer = static_cast<char *>(mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, shmFileDescriptor, 0));
+    const off_t offset = 0;
+    m_buffer = static_cast<char *>(mmap(0, m_size, PROT_READ | PROT_WRITE, MAP_SHARED, shmFileDescriptor, offset));
+    
+    #ifdef DEBUG
     std::cout << "(native) buffer " << static_cast<void *>(buffer) << " " << errno << endl;
-    // if (reinterpret_cast<intptr_t>(buffer) <= 0) // https://stackoverflow.com/questions/573294/when-to-use-reinterpret-cast
-    if (buffer == (char *)-1)
+    #endif
+
+    if (m_buffer == (char *)-1)
     {
         throw Napi::Error::New(info.Env(), "Could not attach the shared memory segment: " + getErrnoAsString());
     }
 
-    // Value().DefineProperty(Napi::PropertyDescriptor::Value("id", Napi::Number::From(info.Env(), key), napi_enumerable));
     Value().DefineProperty(Napi::PropertyDescriptor::Value("id", Napi::Number::From(info.Env(), name), napi_enumerable));
 }
 
-void shared_memory::writeData(const Napi::CallbackInfo &info)
+void SharedMemory::writeData(const Napi::CallbackInfo &info)
 {
     if (info.Length() < 3 || !info[1].IsNumber() || !info[2].IsNumber())
     {
@@ -118,7 +112,7 @@ void shared_memory::writeData(const Napi::CallbackInfo &info)
     size_t offset = info[1].As<Napi::Number>().Int64Value();
     size_t length = info[2].As<Napi::Number>().Int64Value();
 
-    if (offset + length > this->size)
+    if (offset + length > this->m_size)
     {
         throw Napi::RangeError::New(info.Env(), "Offset and length exceed buffer size");
     }
@@ -135,27 +129,28 @@ void shared_memory::writeData(const Napi::CallbackInfo &info)
         bool bRepetitionRequired = true;
         const unsigned int maxWriteRetries = 10;
 
+        // try to write value for maxWriteRetries times
         while (bRepetitionRequired && (counter <= maxWriteRetries))
         {
-            // semaphore lock
             if (m_semaphoreLock.lock())
             {
-
-                memcpy(this->buffer + offset, buf.Data(), length);
-
-                // semaphore unlock
+                memcpy(this->m_buffer + offset, buf.Data(), length);
                 if (m_semaphoreLock.unlock())
                 {
                     bRepetitionRequired = false;
                 }
                 else
                 {
+                    #ifdef DEBUG
                     std::cout << "C++: unable to unlock semaphore for writing" << std::endl;
+                    #endif
                 }
             }
             else
             {
+                #ifdef DEBUG
                 std::cout << "C++: unable to lock semaphore for writing" << std::endl;
+                #endif
             }
             counter++;
         }
@@ -170,7 +165,7 @@ void shared_memory::writeData(const Napi::CallbackInfo &info)
     }
 }
 
-void shared_memory::writeDataByte(const Napi::CallbackInfo &info)
+void SharedMemory::writeByte(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
@@ -184,37 +179,41 @@ void shared_memory::writeDataByte(const Napi::CallbackInfo &info)
     bool bitValue = info[1].As<Napi::Boolean>().Value();
     size_t offset = info[2].As<Napi::Number>().Uint32Value();
 
-    if (offset >= this->size)
+    if (offset >= this->m_size)
     {
         Napi::RangeError::New(env, "Offset exceeds buffer size").ThrowAsJavaScriptException();
         return;
     }
+    
     unsigned int counter = 0;
     bool bRepetitionRequired = true;
     const unsigned int maxWriteRetries = 10;
 
     while (bRepetitionRequired && (counter <= maxWriteRetries))
     {
-        // semaphore lock
         if (m_semaphoreLock.lock())
         {
-            uint8_t currentValue = this->buffer[offset];
+            uint8_t currentValue = this->m_buffer[offset];
             uint8_t newValue = bitValue ? (currentValue | bitmask) : (currentValue & ~bitmask);
-            memcpy(this->buffer + offset, &newValue, 1);
+            const size_t length = 1;
+            memcpy(this->m_buffer + offset, &newValue, length);
 
-            // semaphore unlock
             if (m_semaphoreLock.unlock())
             {
                 bRepetitionRequired = false;
             }
             else
             {
+                #ifdef DEBUG
                 std::cout << "C++: unable to unlock semaphore for writing" << std::endl;
+                #endif
             }
         }
         else
         {
+            #ifdef DEBUG
             std::cout << "C++: unable to lock semaphore for writing" << std::endl;
+            #endif
         }
         counter++;
     }
@@ -224,26 +223,25 @@ void shared_memory::writeDataByte(const Napi::CallbackInfo &info)
     }
 }
 
-Napi::Value shared_memory::readBuffer(const Napi::CallbackInfo &info)
+Napi::Value SharedMemory::readBuffer(const Napi::CallbackInfo &info)
 {
-    ManagementBuffer *pManagmentBuffer = (ManagementBuffer *)buffer;
+    ManagementBuffer *pManagmentBuffer = (ManagementBuffer *)m_buffer;
     Napi::Env env = info.Env();
 
-    auto buf = Napi::Buffer<char>::New(info.Env(), this->size);
+    auto buf = Napi::Buffer<char>::New(info.Env(), this->m_size);
     const unsigned int maxReadRetries = 10;
     unsigned int counter = 0;
     bool bRepetitionRequired = true;
 
-    if (doublebuffer)
+    if (m_isDoubleBuffer)
     {
-
         while (bRepetitionRequired && (counter <= maxReadRetries))
         {
             // ck_sequenz lock read
             auto m_version = ck_sequence_read_begin(&pManagmentBuffer->seqlock);
 
             // read value
-            memcpy(buf.Data(), this->buffer, this->size);
+            memcpy(buf.Data(), this->m_buffer, this->m_size);
 
             // read ck_sequenz again - if true read again
             bRepetitionRequired = ck_sequence_read_retry(&pManagmentBuffer->seqlock, m_version);
@@ -252,7 +250,7 @@ Napi::Value shared_memory::readBuffer(const Napi::CallbackInfo &info)
 
         if (bRepetitionRequired)
         {
-            throw Napi::Error::New(env, "C++: can not read value.");
+            throw Napi::Error::New(env, "Unable to read value");
         }
 
         // return buffer
@@ -260,16 +258,12 @@ Napi::Value shared_memory::readBuffer(const Napi::CallbackInfo &info)
     }
     else
     {
-
         while (bRepetitionRequired && (counter <= maxReadRetries))
         {
-
-            // semaphore lock
             if (m_semaphoreLock.lock())
             {
-
                 // read Value
-                memcpy(buf.Data(), this->buffer, this->size);
+                memcpy(buf.Data(), this->m_buffer, this->m_size);
 
                 if (m_semaphoreLock.unlock())
                 {
@@ -277,26 +271,30 @@ Napi::Value shared_memory::readBuffer(const Napi::CallbackInfo &info)
                 }
                 else
                 {
+                    #ifdef DEBUG
                     std::cout << "read semaphore unlock failed" << std::endl;
+                    #endif
                 }
             }
             else
             {
+                #ifdef DEBUG
                 std::cout << "read semaphore lock failed" << std::endl;
+                #endif
             }
             counter++;
         }
 
         if (bRepetitionRequired)
         {
-            throw Napi::Error::New(env, "C++: can not read value.");
+            throw Napi::Error::New(env, "Unable to read value");
         }
         // return buffer
         return buf.ToObject();
     }
 }
 
-void shared_memory::setBuffer(const Napi::CallbackInfo &info, const Napi::Value &value)
+void SharedMemory::setBuffer(const Napi::CallbackInfo &info, const Napi::Value &value)
 {
     if (!value.IsBuffer())
     {
@@ -304,24 +302,24 @@ void shared_memory::setBuffer(const Napi::CallbackInfo &info, const Napi::Value 
     }
 
     auto buf = info[0].As<Napi::Buffer<char>>();
-    if (buf.Length() > this->size)
+    if (buf.Length() > this->m_size)
     {
         throw Napi::Error::New(info.Env(), "Could not write to the buffer: The input is bigger than the buffer size");
     }
 
-    memcpy(this->buffer, buf.Data(), buf.Length());
+    memcpy(this->m_buffer, buf.Data(), buf.Length());
 }
 
-shared_memory::~shared_memory()
+SharedMemory::~SharedMemory()
 {
-    shmdt(this->buffer);
-    // shmctl(this->extraInfo->id, IPC_RMID, nullptr);
+    // detach from shared memory
+    shmdt(this->m_buffer);
 }
 
 Napi::Object InitAll(Napi::Env env, Napi::Object exports)
 {
-    shared_memory::init(env, exports);
+    SharedMemory::init(env, exports);
     return exports;
 }
 
-NODE_API_MODULE(shared_memory, InitAll)
+NODE_API_MODULE(SharedMemory, InitAll)

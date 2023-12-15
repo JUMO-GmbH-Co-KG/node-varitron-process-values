@@ -1,3 +1,10 @@
+/*!
+ * @file   SharedMemory.hpp
+ *
+ * @brief  This class wraps the attach to a shared memory block. It also provides methods to write and read data.
+ *
+ */
+
 #pragma once
 
 #include <memory>
@@ -9,7 +16,7 @@
 /**
  * The shared memory node wrapper class
  */
-class shared_memory : public Napi::ObjectWrap<shared_memory>
+class SharedMemory : public Napi::ObjectWrap<SharedMemory>
 {
 public:
     /**
@@ -21,33 +28,25 @@ public:
     static void init(Napi::Env env, Napi::Object &exports);
 
     /**
-     * Create a shared_memory instance
+     * Create a SharedMemory instance
      *
      * @param info the callback info
      */
-    explicit shared_memory(const Napi::CallbackInfo &info);
+    explicit SharedMemory(const Napi::CallbackInfo &info);
 
-    // /**
-    //  * Write data to the memory block
-    //  *
-    //  * @param info the callback info
-    //  */
+    /**
+     * Write data to the memory block
+     *
+     * @param info the callback info
+     */
     void writeData(const Napi::CallbackInfo &info);
 
-    // /**
-    //  * Write data byte to the memory block
-    //  *
-    //  * @param info the callback info
-    //  */
-    void writeDataByte(const Napi::CallbackInfo &info);
-
-    // /**
-    //  * Copy a string to the memory block
-    //  *
-    //  * @param info the callback info
-    //  * @param value the value to copy
-    //  */
-    // void setString(const Napi::CallbackInfo &info, const Napi::Value &value);
+    /**
+     * Write data byte to the memory block
+     *
+     * @param info the callback info
+     */
+    void writeByte(const Napi::CallbackInfo &info);
 
     /**
      * Copy a node buffer to the memory block
@@ -68,20 +67,13 @@ public:
     /**
      * Destroy the shared memory instance
      */
-    ~shared_memory() override;
+    ~SharedMemory() override;
 
 private:
-    /**
-     * Some extra info
-     */
-    class extra_info;
+    // Properties and pointer of the memory block
+    size_t m_size;
+    char *m_buffer;
+    bool m_isDoubleBuffer;
 
-    // The size of the memory block
-    size_t size;
-    // A pointer to the memory block
-    char *buffer;
-    bool doublebuffer;
-    // The extra info
-    std::shared_ptr<extra_info> extraInfo;
     SystemVSemaphore m_semaphoreLock;
 };
