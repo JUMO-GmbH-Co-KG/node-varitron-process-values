@@ -56,6 +56,14 @@ export async function getProviderList() {
     }
 }
 
+// filter out modules and instances that should not be shown because they are invalid, useless or for internal use only
+const blacklist = [
+    { moduleName: 'EtherCatGateway', instanceNameRegExp: /\d{6}\/\w+Selector/ },  // All instances of EtherCatGateway with a name like 705020/OutputSelector are not accessable
+    { moduleName: 'EtherCatGateway', instanceNameRegExp: /Initialization$/ },     // Initialization are for internal use only
+    { moduleName: 'RealTimeScheduler', instanceNameRegExp: /DebugData$/ },        // DebugData is for internal use only
+    { moduleName: 'RealTimeScheduler', instanceNameRegExp: /ThreadData$/ }        // ThreadData is for internal use only
+];
+
 /*
 * function: findInstance
 */
@@ -76,27 +84,18 @@ async function recursiveFindInstance(instance) {
             return result;
         }
 
-        // filter out 'EtherCatGateway' instances With 'Selector' or 'Initialization' because we cannot use them
-        if (moduleName === 'EtherCatGateway' && (instanceName.match(/\d{6}\/\w+Selector/) || instanceName.match(/\w+Initialization/))) {
+        // check if instance matches any blacklist entry
+        if (blacklist.some(entry => entry.moduleName === moduleName && entry.instanceNameRegExp.test(instanceName))) {
             return result;
         }
-
-        // filter out 'RealTimeScheduler' instances with 'DebugData' because they are for internal use only
-        if (moduleName === 'RealTimeScheduler' && instanceName.endsWith('DebugData')) {
-            // ProcessData#RealTimeScheduler#ProcessData#RealTimeThread01/RealTimeThreadModules/Groups/Group01/DebugData#Parameter1
-            return result;
-        }
-
-        // filter out 'RealTimeScheduler' instances with 'ThreadData' because they are for internal use only
-        // if (moduleName === 'RealTimeScheduler' && instanceName.endsWith('ThreadData')) {
-        //     //ProcessData#RealTimeScheduler#ProcessData#RealTimeThread01/ThreadData#AverageValue
-        //     return result;
-        // }        
 
         try {
             const processDataDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
             const structuredProcessDataDescription = createObjectHierarchy(processDataDescription, moduleName, instanceName, objectName);
-            const object = { 'name': instanceName, values: structuredProcessDataDescription };
+            const object = {
+                name: instanceName,
+                values: structuredProcessDataDescription,
+            };
             result.push(object);
         } catch (error) {
             const errMsg = `Can't get ProcessDataDescription for module: ${moduleName},  instance: ${instanceName}, object: ${objectName}: ${error}`;
