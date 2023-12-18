@@ -40,11 +40,15 @@ export async function getProviderList() {
                         return Promise.reject(new Error(errMsg));
                     }
                 }
-                providerList.push({
-                    moduleName: module.moduleName,
-                    objectName: module.objectName,
-                    instances: result,
-                });
+
+                // keep only modules with instances because we don't want to see modules without process values
+                if (result.length > 0) {
+                    providerList.push({
+                        moduleName: module.moduleName,
+                        objectName: module.objectName,
+                        instances: result,
+                    });
+                }
             } catch (e) {
                 return Promise.reject(new Error(`Can't get list of instances for ${module.moduleName}.${module.objectName}: ` + e));
             }
@@ -72,7 +76,8 @@ async function recursiveFindInstance(instance) {
     const result = [];
     if (Object.prototype.hasOwnProperty.call(instance, 'substructure')) {
         for (const element of instance.substructure) {
-            result.push(...await recursiveFindInstance(element));
+            const subResult = await recursiveFindInstance(element);
+            result.push(...subResult);
         }
     } else {
         const moduleName = instance.moduleName;
