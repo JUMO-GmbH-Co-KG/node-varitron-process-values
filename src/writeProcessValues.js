@@ -3,30 +3,20 @@ import { getObjectFromUrl, getNestedProcessValueDescription } from './processVal
 import { native } from './importShm.js';
 
 export async function write(input) {
-    if (typeof input === 'object') {
-        if (Array.isArray(input)) {
-            // Input is an array of objects
-            for (const item of input) {
-                try {
-                    await writeValue(item.processValueUrl, item.processValue);
-                } catch (e) {
-                    return Promise.reject(new Error(`Can't write value ${item.processValue} to ${item.processValueUrl}: ${e}`));
-                }
-                return Promise.resolve();
-            }
-        } else {
-            // Input is a single object
-            try {
-                await writeValue(input.processValueUrl, input.processValue);
-            } catch (e) {
-                return Promise.reject(new Error(`Can't write value ${input.processValue} to ${input.processValueUrl}: ${e}`));
-            }
-            return Promise.resolve();
-        }
-    } else {
-        // It's not an object
-        return Promise.reject(new Error('Input have to be an object or an array of objects.'));
+    // wrap a single object in an array
+    if (!Array.isArray(input)) {
+        input = [input];
     }
+
+    // process each object in the array
+    for (const item of input) {
+        try {
+            await writeValue(item.processValueUrl, item.processValue);
+        } catch (e) {
+            return Promise.reject(new Error(`Can't write ${JSON.stringify(item)}: ${e}`));
+        }
+    }
+    return Promise.resolve();
 }
 
 // eslint-disable-next-line max-statements, complexity

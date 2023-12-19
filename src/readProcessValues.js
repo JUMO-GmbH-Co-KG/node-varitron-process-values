@@ -2,29 +2,27 @@ import { getProcessDataDescription } from './providerHandler.js';
 import { getObjectFromUrl, getNestedProcessValueDescription } from './processValueUrl.js';
 import { native } from './importShm.js';
 
-export async function read(processValueUrl) {
-    if (Array.isArray(processValueUrl)) {
-        // Parameter is an array of urls
-        const results = [];
-        for (const procValueUrl of processValueUrl) {
-            try {
-                const result = await readFromUrl(procValueUrl);
-                results.push(result);
-            } catch (e) {
-                return Promise.reject(new Error(`Can't read process value of ${procValueUrl}: ${e}`));
-            }
-        }
-        return Promise.resolve(results);
-    } else {
-        // parameter is a Process value url
+export async function read(input) {
+    // wrap a single object in an array
+    if (!Array.isArray(input)) {
+        input = [input];
+    }
+
+    const results = [];
+    for (const valueUrl of input) {
         try {
-            const result = await readFromUrl(processValueUrl);
-            return Promise.resolve(result);
+            const result = await readFromUrl(valueUrl);
+            results.push(result);
         } catch (e) {
-            const errMsg = `Can't read process value of ${processValueUrl}: ${e}`;
-            return Promise.reject(new Error(errMsg));
+            return Promise.reject(new Error(`Can't read process value of ${valueUrl}: ${e}`));
         }
     }
+
+    // return a single object if input was a single object
+    if (results.length === 1) {
+        return Promise.resolve(results[0]);
+    }
+    return Promise.resolve(results);
 }
 
 // read function
@@ -34,7 +32,7 @@ async function readFromUrl(processValueUrl) {
     if (typeof processValueUrl !== 'string') {
         return Promise.reject(new Error('processValueUrl is not a string'));
     }
-    
+
     // get parameters from processValueUrl
     const urlObject = getObjectFromUrl(processValueUrl);
 
