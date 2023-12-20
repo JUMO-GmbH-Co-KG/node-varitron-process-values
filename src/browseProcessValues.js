@@ -1,7 +1,6 @@
 import { getRegisteredProvidersList, getListOfInstances } from './systemInformationManager.js';
 import { getProcessDataDescription } from './providerHandler.js';
 
-
 async function getProcessValueProvidingModules() {
     const modules = [];
     try {
@@ -152,7 +151,7 @@ function createObjectHierarchy(obj, moduleName, instanceName, objectName) {
 
                     setDeepProperty(destination, cleanPath, {
                         name,
-                        URL: `ProcessData#${moduleName}#${objectName}#${instanceName}#${pathName}`,
+                        selector: `ProcessData#${moduleName}#${objectName}#${instanceName}#${pathName}`,
                         type: source.type,
                         readOnly: source.readOnly,
                         unit
