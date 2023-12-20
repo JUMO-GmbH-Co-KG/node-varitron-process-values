@@ -9,12 +9,13 @@ export async function read(input) {
     }
 
     const results = [];
-    for (const valueUrl of input) {
+    for (const item of input) {
         try {
-            const result = await readFromUrl(valueUrl);
+            const selector = (typeof item === 'string') ? item : item.selector;
+            const result = await readFromUrl(selector);
             results.push(result);
         } catch (e) {
-            return Promise.reject(new Error(`Can't read process value of ${valueUrl}: ${e}`));
+            return Promise.reject(new Error(`Can't read process value of ${JSON.stringify(item)}: ${e}`));
         }
     }
 
@@ -27,23 +28,23 @@ export async function read(input) {
 
 // read function
 // eslint-disable-next-line max-statements
-async function readFromUrl(processValueUrl) {
+async function readFromUrl(selector) {
     // validate input
-    if (typeof processValueUrl !== 'string') {
-        return Promise.reject(new Error('processValueUrl is not a string'));
+    if (typeof selector !== 'string') {
+        return Promise.reject(new Error('selector is not a string'));
     }
 
-    // get parameters from processValueUrl
-    const urlObject = getObjectFromUrl(processValueUrl);
+    // get parameters from selector
+    const selectorDescription = getObjectFromUrl(selector);
 
     // get ProcessDataDescription from DBus
     const processDescription = await getProcessDataDescription(
-        urlObject.moduleName,
-        urlObject.instanceName,
-        urlObject.objectName,
+        selectorDescription.moduleName,
+        selectorDescription.instanceName,
+        selectorDescription.objectName,
         'us_EN');
 
-    const valueDescription = getNestedProcessValueDescription(processDescription, urlObject.parameterUrl);
+    const valueDescription = getNestedProcessValueDescription(processDescription, selectorDescription.parameterUrl);
 
     /* ManagementBuffer structure (12 byte length)
     *  0 = activeReadBuffer
@@ -91,7 +92,7 @@ async function readFromUrl(processValueUrl) {
         const unit = measurementRange?.unitText?.POSIX || '';
 
         const result = {
-            url: processValueUrl,
+            selector,
             value,
             type: valueDescription.type,
             readOnly: valueDescription.readOnly,
