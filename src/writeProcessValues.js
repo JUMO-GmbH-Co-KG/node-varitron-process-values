@@ -8,38 +8,46 @@ export async function write(input) {
         input = [input];
     }
 
-    // process each object in the array
+    const results = [];
     for (const item of input) {
         try {
-            await writeValue(item.processValueUrl, item.processValue);
+            await writeValue(item.selector, item.value);
+            results.push({
+                done: true,
+            });
         } catch (e) {
             return Promise.reject(new Error(`Can't write ${JSON.stringify(item)}: ${e}`));
         }
     }
-    return Promise.resolve();
+
+    // return a single object if input was a single object
+    if (results.length === 1) {
+        return Promise.resolve(results[0]);
+    }
+    return Promise.resolve(results);
 }
 
 // eslint-disable-next-line max-statements, complexity
-async function writeValue(processValueUrl, processValue) {
+async function writeValue(selector, value) {
     // validate input
-    if (typeof processValueUrl !== 'string') {
-        return Promise.reject(new Error('processValueUrl is not a string'));
+    if (typeof selector !== 'string') {
+        return Promise.reject(new Error('selector is not a string'));
     }
-    if (typeof processValue !== 'string' && typeof processValue !== 'number' && typeof processValue !== 'boolean') {
+    if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
         return Promise.reject(new Error('processValue is not a string, number or boolean'));
     }
 
-    // get parameters from processValueUrl
-    const urlObject = getObjectFromUrl(processValueUrl);
+    // get parameters from selector
+    const selectorDescription = getObjectFromUrl(selector);
 
     // get ProcessDataDescription from DBus
     const processDescription = await getProcessDataDescription(
-        urlObject.moduleName,
-        urlObject.instanceName,
-        urlObject.objectName,
+        selectorDescription.moduleName,
+        selectorDescription.instanceName,
+        selectorDescription.objectName,
         'us_EN');
 
-    const valueDescription = getNestedProcessValueDescription(processDescription, urlObject.parameterUrl);
+    const valueDescription = getNestedProcessValueDescription(processDescription, selectorDescription.parameterUrl);
     if (valueDescription.readOnly) {
         return Promise.reject(new Error('Not allowed to write read-only process values'));
     }
@@ -78,7 +86,7 @@ async function writeValue(processValueUrl, processValue) {
         // calculate general offset inside shared memory depending on buffer type
         const offset = isDoubleBuffer ? offsetManagementBuffer + activeWriteBuffer * lengthSharedMemory : 0;
 
-        writeProcessValue(valueDescription, processValue, memory, offset);
+        writeProcessValue(valueDescription, value, memory, offset);
 
         // write error code 0 after successfull writing
         const errorCode = 0;
@@ -185,4 +193,3 @@ function writeProcessValue(valueDescription, processValue, memory, offset) {
         throw new Error('writing process values: unhandled type: Selector');
     }
 }
-
