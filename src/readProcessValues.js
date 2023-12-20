@@ -187,7 +187,7 @@ function getProcessValue(valueDescription, buf, offset) {
     }
     else if (valueDescription.type == 'Bit') {
         const tmpvalue = buf.readUInt8(offsetValue + offset);
-        if (tmpvalue & valueDescription.bitMask == 0) {
+        if ((tmpvalue & valueDescription.bitMask) == 0) {
             value = false;
         } else {
             value = true;
