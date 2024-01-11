@@ -1,36 +1,46 @@
 # read process values
 
+The read function lets you read process values for a given selector
+
 ## input
 
-Prozesswert Url (String)
-Liste von Prozesswert Urls (String[])
+Selector (String)
+List of Selectors (String[])
 
 ## output
 
-Ausgabe Wert in passenden json typ
-Error im Fehlerfall
-
+Result as an object with the following properties: 
+    - selector
+    - value
+    - type (type of the process value)
+    - readOnly (boolean)
+    - unit (measuring unit of the process value)
+    -error - code (errorcode of the process value)
+    -error - text (errortext of the process value)
 
 # write process values
 
+The write function lets you write process values to a given selector
+
 ## input
 
-key value pair (Prozesswert-URL (String), value)
-Liste von key value pairs 
+Key value pair (selector (String), value)
+List of key value pairs ([] of key value pairs)
 
 ## output
 
-Error im Fehlerfall
+Error if failing to write process values
 
 
 # browse process values
 
 ## input
 
-keine input parameter
+no input parameter
 
 ## output
 
+A list of process values as a tree 
 ----
 # Node-RED module
 
