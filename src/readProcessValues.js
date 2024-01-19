@@ -235,19 +235,34 @@ function getErrorText(metadata) {
 * function to resolve a errorCode from Float ProcessValue
 */
 function getErrorCodeFromFloatValue(value) {
+    // converting a float into a js number lacks precision
+    // to compare the float value with the error code we need to convert it back into
+    // its binary float representation
+    function floatToBuffer(value) {
+        const fVal = new Float32Array(1);
+        fVal[0] = value;
+        return Buffer.from(fVal.buffer);
+    }
+
     const errorMap = new Map([
-        [1e37, 1],
-        [2e37, 2],
-        [3e37, 3],
-        [4e37, 4],
-        [5e37, 5],
-        [6e37, 6],
-        [7e37, 7],
-        [8e37, 8],
-        [9e37, 9]
+        [floatToBuffer(1e37), 1],
+        [floatToBuffer(2e37), 2],
+        [floatToBuffer(3e37), 3],
+        [floatToBuffer(4e37), 4],
+        [floatToBuffer(5e37), 5],
+        [floatToBuffer(6e37), 6],
+        [floatToBuffer(7e37), 7],
+        [floatToBuffer(8e37), 8],
+        [floatToBuffer(9e37), 9]
     ]);
 
-    return errorMap.get(value) || 0;
+    const valueBuffer = floatToBuffer(value);
+    for (const [key, value] of errorMap.entries()) {
+        if (0 == Buffer.compare(key, valueBuffer)) {
+            return value;
+        }
+    }
+    return 0;
 }
 
 /*
