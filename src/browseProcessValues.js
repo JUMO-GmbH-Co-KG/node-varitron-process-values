@@ -112,7 +112,7 @@ async function recursiveFindInstance(instance) {
 /*
 * function: createObjectHierarchy
 */
-function createObjectHierarchy(obj, moduleName, instanceName, objectName) {
+export function createObjectHierarchy(obj, moduleName, instanceName, objectName) {
     function setDeepProperty(destination, path, obj) {
         let currentLevel = destination;
         path.forEach((key, index) => {
