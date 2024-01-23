@@ -2,6 +2,9 @@ import { getProcessDataDescription } from './providerHandler.js';
 import { getObjectFromUrl, getNestedProcessValueDescription } from './processValueUrl.js';
 import { native } from './importShm.js';
 
+// map to store shared memory objects with the shmKey as key 
+const sharedMemoryMap = new Map();
+
 export async function write(input) {
     // wrap a single object in an array
     if (!Array.isArray(input)) {
@@ -74,9 +77,16 @@ async function writeValue(selector, value) {
     // set semaphore name based on buffer type
     const semaphoreKey = `${sharedMemoryKey}Semaphore${isDoubleBuffer ? 'WriteLock' : 'BufferLock'}`;
     try {
-        // create shared memory object in c++
-        const creationType = 0; // attachToExistingLock
-        const memory = new native.SharedMemory(shmKey, sizeSharedMemory, isDoubleBuffer, semaphoreKey, creationType);
+        // if the shared memory object is not yet created, create it, else use the existing one
+        let memory;
+        if (!sharedMemoryMap.has(shmKey)) {
+            // create shared memory object in c++
+            const creationType = 0; // attachToExistingLock
+            memory = new native.SharedMemory(shmKey, sizeSharedMemory, isDoubleBuffer, semaphoreKey, creationType);
+            sharedMemoryMap.set(shmKey, memory);
+        } else {
+            memory = sharedMemoryMap.get(shmKey);
+        }
 
         const buf = memory.buffer;
 
