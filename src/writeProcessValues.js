@@ -97,9 +97,9 @@ async function writeValue(selector, value) {
         const activeWriteBuffer = isDoubleBuffer ? buf.readUInt32LE(4) : 0;
 
         // calculate general offset inside shared memory depending on buffer type
-        const offset = isDoubleBuffer ? offsetManagementBuffer + activeWriteBuffer * lengthSharedMemory : 0;
+        const bufferStartAddress = isDoubleBuffer ? offsetManagementBuffer + activeWriteBuffer * lengthSharedMemory : 0;
 
-        writeProcessValue(valueDescription, value, memory, offset);
+        writeProcessValue(valueDescription, value, memory, bufferStartAddress);
 
         // write error code 0 after successfull writing
         const errorCode = 0;
@@ -123,87 +123,42 @@ function writeErrorCodeToMetaData(valueDescription, memory, errorCode) {
     }
 }
 
-// eslint-disable-next-line max-statements, complexity
-function writeProcessValue(valueDescription, processValue, memory, offset) {
-    // Momentan sind die folgenden Datentypen implementiert:
-    // * ShortInteger - signed short 16bit
-    // * UnsignedShortInteger - unsigned short 16bit
-    // * Integer - int 32bit
-    // * UnsignedInteger - unsigned int 32 bit
-    // * LongLong - signed long long 64bit
-    // * UnsignedLongLong - unsigned long long 64bit
-    // * Double - Gleitkommazahl mit doppelter Genauigkeit
-    // * Float - Gleitkommazahl mit einfacher Genauigkeit
-    // * Boolean - C++11 Typ bool
-    // * Bit - ein Bit in einem Byte
-    // * String - QString
-    // * Selection - QString
-    // * Selector - QString
-
+function writeProcessValue(valueDescription, value, memory, bufferStartAddress) {
     const offsetValue = valueDescription.offsetSharedMemory;
 
-    if (valueDescription.type == 'ShortInteger') {
-        const int16Value = Buffer.alloc(2);
-        int16Value.writeInt16LE(processValue);
-        memory.write(int16Value, offsetValue + offset, 2);
-    }
-    else if (valueDescription.type == 'UnsignedShortInteger') {
-        const uint16Value = Buffer.alloc(2);
-        uint16Value.writeUInt16LE(processValue);
-        memory.write(uint16Value, offsetValue + offset, 2);
-    }
-    else if (valueDescription.type == 'Integer') {
-        const int32Value = Buffer.alloc(4);
-        int32Value.writeInt32LE(processValue);
-        memory.write(int32Value, offsetValue + offset, 4);
-    }
-    else if (valueDescription.type == 'UnsignedInteger') {
-        const uint32Value = Buffer.alloc(4);
-        uint32Value.writeUInt32LE(processValue);
-        memory.write(uint32Value, offsetValue + offset, 4);
-    }
-    else if (valueDescription.type == 'LongLong') {
-        const long = Buffer.alloc(8);
-        long.writeBigInt64LE(processValue);
-        memory.write(long, offsetValue + offset, 8);
-    }
-    else if (valueDescription.type == 'UnsignedLongLong') {
-        const ulong = Buffer.alloc(8);
-        ulong.writeUBigInt64LE(processValue);
-        memory.write(ulong, offsetValue + offset, 8);
-    }
-    else if (valueDescription.type == 'Double') {
-        const double = Buffer.alloc(8);
-        double.writeDoubleLE(processValue);
-        memory.write(double, offsetValue + offset, 8);
-    }
-    else if (valueDescription.type == 'Float') {
-        const float = Buffer.alloc(4);
-        float.writeFloatLE(processValue);
-        memory.write(float, offsetValue + offset, 4);
-    }
-    else if (valueDescription.type == 'Boolean') {
-        if (valueDescription.sizeValue == 4) {
-            const bool = Buffer.alloc(4);
-            bool.writeUInt32LE(processValue);
-            memory.write(bool, offsetValue + offset, 4);
-        } else if (valueDescription.sizeValue == 1) {
-            const bool = Buffer.alloc(1);
-            bool.writeUInt8(processValue);
-            memory.write(bool, offsetValue + offset, 1);
+    const typeMap = {
+        'ShortInteger': { size: 2, writeFn: 'writeInt16LE' },
+        'UnsignedShortInteger': { size: 2, writeFn: 'writeUInt16LE' },
+        'Integer': { size: 4, writeFn: 'writeInt32LE' },
+        'UnsignedInteger': { size: 4, writeFn: 'writeUInt32LE' },
+        'LongLong': { size: 8, writeFn: 'writeBigInt64LE' },
+        'UnsignedLongLong': { size: 8, writeFn: 'writeUBigInt64LE' },
+        'Double': { size: 8, writeFn: 'writeDoubleLE' },
+        'Float': { size: 4, writeFn: 'writeFloatLE' },
+        'Boolean': { size: valueDescription.sizeValue, writeFn: valueDescription.sizeValue === 1 ? 'writeUInt8' : 'writeUInt32LE' },
+        'Bit': { size: 1, writeFn: 'writeByte' },
+        'String': { size: null, writeFn: null },
+        'Selection': { size: null, writeFn: null },
+        'Selector': { size: null, writeFn: null }
+    };
+
+    const typeInfo = typeMap[valueDescription.type];
+
+    if (typeInfo) {
+        if (typeInfo.size) {
+            if (typeInfo.writeFn === 'writeByte') {
+                // special handling for Bit
+                memory.writeByte(valueDescription.bitMask, value, bufferStartAddress + offsetValue);
+            } else {
+                const buffer = Buffer.alloc(typeInfo.size);
+                buffer[typeInfo.writeFn](value);
+                memory.write(buffer, bufferStartAddress + offsetValue, typeInfo.size);
+            }
+        } else {
+            throw new Error(`Unhandled value type: ${valueDescription.type}`);
         }
-    }
-    else if (valueDescription.type == 'Bit') {
-        memory.writeByte(valueDescription.bitMask, processValue, offsetValue + offset);
-    }
-    else if (valueDescription.type == 'String') {
-        throw new Error('writing process values: unhandled type: String');
-    }
-    else if (valueDescription.type == 'Selection') {
-        throw new Error('writing process values: unhandled type: Selection');
-    }
-    else if (valueDescription.type == 'Selector') {
-        throw new Error('writing process values: unhandled type: Selector');
+    } else {
+        throw new Error(`Unknown value type: ${valueDescription.type}`);
     }
 }
 

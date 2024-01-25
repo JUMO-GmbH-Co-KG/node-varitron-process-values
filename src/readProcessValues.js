@@ -85,13 +85,13 @@ async function readFromUrl(selector) {
         const activeReadBuffer = isDoubleBuffer ? buf.readUInt32LE(0) : 0;
 
         // calculate general offset inside shared memory depending on buffer type
-        const offset = isDoubleBuffer ? offsetManagementBuffer + activeReadBuffer * lengthSharedMemory : 0;
+        const bufferStartAddress = isDoubleBuffer ? offsetManagementBuffer + activeReadBuffer * lengthSharedMemory : 0;
 
-        // read out value from shared memory based on type
-        const value = getProcessValue(valueDescription, buf, offset);
+        // read value from shared memory based on type
+        const value = getProcessValue(valueDescription, buf, bufferStartAddress);
 
-        // read out metadata from process value - this contains the error code
-        const errorCode = getErrorCodeFromMetaData(valueDescription, buf, offset, value);
+        // read metadata from process value - this contains the error code
+        const errorCode = getErrorCodeFromMetaData(valueDescription, buf, bufferStartAddress, value);
         const errorText = getErrorText(errorCode);
 
         // until now only one measurement range is supported
@@ -119,13 +119,13 @@ async function readFromUrl(selector) {
     }
 }
 
-function getErrorCodeFromMetaData(valueDescription, buf, offset, value) {
+function getErrorCodeFromMetaData(valueDescription, buf, bufferStartAddress, value) {
     const offsetMetadata = valueDescription.offsetSharedMemory + valueDescription.relativeOffsetMetadata;
 
     let metadata;
     if (valueDescription.sizeMetadata == 4) {
         // standard: metadata containing an 32 bit error code
-        metadata = buf.readUInt32LE(offsetMetadata + offset);
+        metadata = buf.readUInt32LE(offsetMetadata + bufferStartAddress);
     } else if (valueDescription.sizeMetadata == 0) {
         // metadata containing no error code
         // for legacy jumo modules extract error code from value
@@ -143,79 +143,29 @@ function getErrorCodeFromMetaData(valueDescription, buf, offset, value) {
     return metadata;
 }
 
-// eslint-disable-next-line complexity, max-statements
-function getProcessValue(valueDescription, buf, offset) {
-    // Momentan sind die folgenden Datentypen implementiert
-    // * ShortInteger - signed short 16bit
-    // * UnsignedShortInteger - unsigned short 16bit
-    // * Integer - int 32bit
-    // * UnsignedInteger - unsigned int 32 bit
-    // * LongLong - signed long long 64bit
-    // * UnsignedLongLong - unsigned long long 64bit
-    // * Double - Gleitkommazahl mit doppelter Genauigkeit
-    // * Float - Gleitkommazahl mit einfacher Genauigkeit
-    // * Boolean - C++11 Typ bool
-    // * Bit - ein Bit in einem Byte
-    // * String - QString
-    // * Selection - QString
-    // * Selector - QString      
+function getProcessValue(valueDescription, buf, bufferStartAddress) {
     const offsetValue = valueDescription.offsetSharedMemory;
 
-    let value;
-    if (valueDescription.type == 'ShortInteger') {
-        value = buf.readInt16LE(offsetValue + offset);
+    const valueMap = new Map([
+        ['ShortInteger', () => { return buf.readInt16LE(bufferStartAddress + offsetValue); }],
+        ['UnsignedShortInteger', () => { return buf.readUInt16LE(bufferStartAddress + offsetValue); }],
+        ['Integer', () => { return buf.readInt32LE(bufferStartAddress + offsetValue); }],
+        ['UnsignedInteger', () => { return buf.readUInt32LE(bufferStartAddress + offsetValue); }],
+        ['LongLong', () => { return buf.readBigInt64LE(bufferStartAddress + offsetValue); }],
+        ['UnsignedLongLong', () => { return buf.readBigUInt64LE(bufferStartAddress + offsetValue); }],
+        ['Double', () => { return buf.readDoubleLE(bufferStartAddress + offsetValue); }],
+        ['Float', () => { return buf.readFloatLE(bufferStartAddress + offsetValue); }],
+        ['Boolean', valueDescription.sizeValue === 1 ? () => { return buf.readUInt8(bufferStartAddress + offsetValue) !== 0; } : () => { return buf.readUInt32LE(bufferStartAddress + offsetValue) !== 0; }],
+        ['Bit', () => { return (buf.readUInt8(bufferStartAddress + offsetValue) & valueDescription.bitMask) !== 0; }],
+        ['String', () => { return buf.slice(bufferStartAddress + offsetValue, bufferStartAddress + offsetValue + valueDescription.sizeValue).toString(); }],
+        ['Selection', () => { return buf.slice(bufferStartAddress + offsetValue, bufferStartAddress + offsetValue + valueDescription.sizeValue).toString(); }],
+        ['Selector', () => { return buf.slice(bufferStartAddress + offsetValue, bufferStartAddress + offsetValue + valueDescription.sizeValue).toString(); }]
+    ]);
+
+    if (!valueMap.has(valueDescription.type)) {
+        throw new Error(`Unknown value type: ${valueDescription.type}`);
     }
-    else if (valueDescription.type == 'UnsignedShortInteger') {
-        value = buf.readUInt16LE(offsetValue + offset);
-    }
-    else if (valueDescription.type == 'Integer') {
-        value = buf.readInt32LE(offsetValue + offset);
-    }
-    else if (valueDescription.type == 'UnsignedInteger') {
-        value = buf.readUInt32LE(offsetValue + offset);
-    }
-    else if (valueDescription.type == 'LongLong') {
-        value = buf.readBigInt64LE(offsetValue + offset);
-    }
-    else if (valueDescription.type == 'UnsignedLongLong') {
-        value = buf.readBigUInt64LE(offsetValue + offset);
-    }
-    else if (valueDescription.type == 'Double') {
-        value = buf.readDoubleLE(offsetValue + offset);
-    }
-    else if (valueDescription.type == 'Float') {
-        value = buf.readFloatLE(offsetValue + offset);
-    }
-    else if (valueDescription.type == 'Boolean') {
-        if (valueDescription.sizeValue == 1) {
-            const tmpvalue = buf.readUInt8(offsetValue + offset);
-            value = tmpvalue != 0;
-        } else if (valueDescription.sizeValue == 4) {
-            const tmpvalue = buf.readUInt32LE(offsetValue + offset);
-            value = tmpvalue != 0;
-        }
-    }
-    else if (valueDescription.type == 'Bit') {
-        const tmpvalue = buf.readUInt8(offsetValue + offset);
-        if ((tmpvalue & valueDescription.bitMask) == 0) {
-            value = false;
-        } else {
-            value = true;
-        }
-    }
-    else if (valueDescription.type == 'String') {
-        const tmpbuffer = buf.slice(offsetValue + offset, offsetValue + offset + valueDescription.sizeValue);
-        value = tmpbuffer.toString();
-    }
-    else if (valueDescription.type == 'Selection') {
-        const tmpbuffer = buf.slice(offsetValue + offset, offsetValue + offset + valueDescription.sizeValue);
-        value = tmpbuffer.toString();
-    }
-    else if (valueDescription.type == 'Selector') {
-        const tmpbuffer = buf.slice(offsetValue + offset, offsetValue + offset + valueDescription.sizeValue);
-        value = tmpbuffer.toString();
-    }
-    return value;
+    return valueMap.get(valueDescription.type)();
 }
 
 /*
