@@ -55,6 +55,9 @@ async function writeValue(selector, value) {
         return Promise.reject(new Error('Not allowed to write read-only process values'));
     }
 
+    //checks for correct type of input value
+    checkInputValueType(value, valueDescription);
+
     /* ManagementBuffer structure (12 byte length)
     *  0 = activeReadBuffer
     *  4 = activeWriteBuffer
@@ -201,5 +204,27 @@ function writeProcessValue(valueDescription, processValue, memory, offset) {
     }
     else if (valueDescription.type == 'Selector') {
         throw new Error('writing process values: unhandled type: Selector');
+    }
+}
+
+function checkInputValueType(value, valueDescription) {
+    const stringtypes = ['String', 'Selection', 'Selector'];
+    const booltypes = ['Boolean', 'Bit'];
+    const numbertypes = ['ShortInteger', 'UnsignedShortInteger', 'Integer', 'UnsignedInteger', 'LongLong', 'UnsignedLongLong', 'Double', 'Float'];
+
+    if (typeof value === 'string') {
+        if (!stringtypes.includes(valueDescription.type)) {
+            throw new Error(`writing process value: invalid type of process value for this selector. Value should be ${valueDescription.type}, not a string.`);
+        }
+    }
+    if (typeof value === 'boolean') {
+        if (!booltypes.includes(valueDescription.type)) {
+            throw new Error(`writing process value: invalid type of process value for this selector. Value should be ${valueDescription.type}, not a boolean.`);
+        }
+    }
+    if (typeof value === 'number') {
+        if (!numbertypes.includes(valueDescription.type)) {
+            throw new Error(`writing process value: invalid type of process value for this selector. Value should be ${valueDescription.type}, not a number.`);
+        }
     }
 }
