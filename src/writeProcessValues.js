@@ -37,7 +37,7 @@ async function writeValue(selector, value) {
         return Promise.reject(new Error('selector is not a string'));
     }
     if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
-        return Promise.reject(new Error('processValue is not a string, number or boolean'));
+        return Promise.reject(new Error('value is not a string, number or boolean'));
     }
 
     // get parameters from selector

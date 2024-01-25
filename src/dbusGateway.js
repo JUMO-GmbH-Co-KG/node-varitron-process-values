@@ -46,7 +46,7 @@ export async function dbusGateway(serviceDescription) {
         staticDBusReference = null;
         return Promise.resolve(parse(response));
     } catch (err) {
-        const errMsg = err.message + ` @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
+        const errMsg = `selector not found. ${err.message} @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
         return Promise.reject(errMsg);
     }
 }
