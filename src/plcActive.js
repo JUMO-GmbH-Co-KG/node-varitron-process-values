@@ -2,6 +2,14 @@ import { getProcessDataDescription } from './providerHandler.js';
 import { createObjectHierarchy } from './browseProcessValues.js';
 import { write } from './writeProcessValues.js';
 
+/**
+ * Sets the PlcActive flags by retrieving all existing PlcActive selectors,
+ * creating a list of selector-value pairs, and writing them to true. This
+ * is nessessary to enable controller modules, placed on the JUMO variTRON
+ * system via EtherCAT. The function should be called only once after the
+ * system is started.
+ * @returns {Promise<void>} A promise that resolves when the flags are set.
+ */
 const setPlcActiveFlags = async () => {
     // get all existing PlcActive selectors
     const selectors = await getPlcActiveFlagSelectors();

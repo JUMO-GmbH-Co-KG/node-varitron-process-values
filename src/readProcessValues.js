@@ -5,8 +5,17 @@ import { native } from './importShm.js';
 // map to store shared memory objects with the shmKey as key 
 const sharedMemoryMap = new Map();
 
+/**
+ * Reads process values from the given input.
+ * For each item in the input, it tries to read the process value using the selector.
+ * If an error occurs while reading a process value, it rejects the promise with an error message.
+ * 
+ * @param {Array|String} input - The selector as string or an array of strings to read process values from.
+ * @returns {Promise<Array|Object>} - A promise that resolves with the read process values and their properties.
+ * @throws {Error} - If an error occurs while reading a process value.
+ */
 export async function read(input) {
-    // wrap a single object in an array
+    // wrap a single object in an array to work with the same code underneath
     if (!Array.isArray(input)) {
         input = [input];
     }

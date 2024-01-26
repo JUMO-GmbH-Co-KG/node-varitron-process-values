@@ -5,8 +5,15 @@ import { native } from './importShm.js';
 // map to store shared memory objects with the shmKey as key 
 const sharedMemoryMap = new Map();
 
+/**
+ * Writes process values to the specified selectors with their corresponding values.
+ * 
+ * @param {Object|Array} input - The input object or array of objects containing the selectors and values to write.
+ * @returns {Promise<Object|Array>} - A promise that resolves to an object or an array of objects representing the results of the write operation.
+ * @throws {Error} - If there is an error while writing the process values.
+ */
 export async function write(input) {
-    // wrap a single object in an array
+    // wrap a single object in an array to work with the same code underneath
     if (!Array.isArray(input)) {
         input = [input];
     }

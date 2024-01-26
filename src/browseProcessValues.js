@@ -16,6 +16,13 @@ async function getProcessValueProvidingModules() {
 
 //buffer for the provider list
 let providerListBuffer;
+
+/**
+ * Retrieves a list of possible process values from all available modules of the JUMO variTRON system.
+ * 
+ * @returns {Promise<Array>} A promise that resolves to an array of modules and their associated process values.
+ * @throws {Error} If there is an error retrieving the list of process values.
+*/
 // eslint-disable-next-line max-statements
 export async function getList() {
     //if their is a providerListBuffer resolve to buffer
@@ -109,9 +116,17 @@ async function recursiveFindInstance(instance) {
     return result;
 }
 
-/*
-* function: createObjectHierarchy
-*/
+/**
+ * Creates an usefull object hierarchy based on the provided object, moduleName, instanceName
+ * and objectName. The hierarchy is built by recursively finding leaf objects that represent
+ * process values and adding them to the hierarchy.
+ * 
+ * @param {object} obj - The source object to create the hierarchy from.
+ * @param {string} moduleName - The name of the module.
+ * @param {string} instanceName - The name of the instance.
+ * @param {string} objectName - The name of the object.
+ * @returns {object} - The created object hierarchy.
+ */
 export function createObjectHierarchy(obj, moduleName, instanceName, objectName) {
     function setDeepProperty(destination, path, obj) {
         let currentLevel = destination;
