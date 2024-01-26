@@ -155,7 +155,7 @@ function getProcessValue(valueDescription, buf, bufferStartAddress) {
         ['UnsignedLongLong', () => { return buf.readBigUInt64LE(bufferStartAddress + offsetValue); }],
         ['Double', () => { return buf.readDoubleLE(bufferStartAddress + offsetValue); }],
         ['Float', () => { return buf.readFloatLE(bufferStartAddress + offsetValue); }],
-        ['Boolean', valueDescription.sizeValue === 1 ? () => { return buf.readUInt8(bufferStartAddress + offsetValue) !== 0; } : () => { return buf.readUInt32LE(bufferStartAddress + offsetValue) !== 0; }],
+        ['Boolean', () => { return valueDescription.sizeValue === 1 ? buf.readUInt8(bufferStartAddress + offsetValue) !== 0 : buf.readUInt32LE(bufferStartAddress + offsetValue) !== 0; }],
         ['Bit', () => { return (buf.readUInt8(bufferStartAddress + offsetValue) & valueDescription.bitMask) !== 0; }],
         ['String', () => { return buf.slice(bufferStartAddress + offsetValue, bufferStartAddress + offsetValue + valueDescription.sizeValue).toString(); }],
         ['Selection', () => { return buf.slice(bufferStartAddress + offsetValue, bufferStartAddress + offsetValue + valueDescription.sizeValue).toString(); }],
