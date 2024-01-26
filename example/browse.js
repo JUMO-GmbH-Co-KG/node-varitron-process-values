@@ -1,5 +1,5 @@
-import { getProviderList } from '../src/browseProcessValues.js';
+import { getList } from '../src/browseProcessValues.js';
 
 // get provider list
-const providerlist = await getProviderList();
+const providerlist = await getList();
 console.log(providerlist);

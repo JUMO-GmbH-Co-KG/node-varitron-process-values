@@ -17,7 +17,7 @@ async function getProcessValueProvidingModules() {
 //buffer for the provider list
 let providerListBuffer;
 // eslint-disable-next-line max-statements
-export async function getProviderList() {
+export async function getList() {
     //if their is a providerListBuffer resolve to buffer
     if (providerListBuffer != undefined) {
         return Promise.resolve(providerListBuffer);
@@ -55,7 +55,7 @@ export async function getProviderList() {
         providerListBuffer = providerList;
         return Promise.resolve(providerList);
     } catch (e) {
-        return Promise.reject(new Error(`Unable to getProviderList: ${e}`));
+        return Promise.reject(new Error(`Unable to getList: ${e}`));
     }
 }
 
