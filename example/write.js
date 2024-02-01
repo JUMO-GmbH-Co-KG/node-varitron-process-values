@@ -1,5 +1,5 @@
-import { read } from '../src/readvalues.js';
-import { write } from '../src/writevalues.js';
+import { read } from '../src/readProcessValues.js';
+import { write } from '../src/writeProcessValues.js';
 
 // read and write analog value
 await write({
@@ -68,7 +68,7 @@ try {
         'value': 980000.34
     });
 } catch (e) {
-    console.error('Error: Unable to write process value.' + e);
+    console.error('Error: Unable to write process value: ' + e);
 }
 
 // write double buffer
@@ -78,10 +78,25 @@ try {
         'value': 15.5
     });
 } catch (e) {
-    console.error('Error: Unable to write double buffer process value.' + e);
+    console.error('Error: Unable to write double buffer process value: ' + e);
 }
 
-const writtenvalue = await read('ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm');
-const writtenvalue3 = await read('ProcessData#RealTimeScheduler#ProcessData#RealTimeThread01/ThreadData#AverageValue');
-console.log(writtenvalue);
-console.log(writtenvalue3);
+// write single buffer
+await write({
+    'selector': 'ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm',
+    'value': false,
+});
+
+const afterWriteFalse = await read('ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm');
+
+console.log(afterWriteFalse.value == false ? 'Write successful' : 'Write failed');
+
+// write single buffer
+await write({
+    'selector': 'ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm',
+    'value': true,
+});
+
+const afterWriteTrue = await read('ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm');
+
+console.log(afterWriteTrue.value == true ? 'Write successful' : 'Write failed');
