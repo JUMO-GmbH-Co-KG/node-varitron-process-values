@@ -1,6 +1,26 @@
 import { getRegisteredProvidersList, getListOfInstances } from './systemInformationManager.js';
 import { getProcessDataDescription } from './providerHandler.js';
 
+/**
+ * Retrieves a list of modules providing process data based on the registered providers from dbus.
+ *
+ * @returns {Promise<Array<Object>>} - A promise that resolves with an array of objects containing moduleName and objectName.
+ * @throws {Error} - Throws an error if there is an issue retrieving the registered providers list.
+ *
+ * @description
+ * This asynchronous function retrieves the list of registered providers for process data in the specified language ('us_EN').
+ * It extracts the moduleName and objectName from each provider entry and returns an array of objects containing this information.
+ * If any issues occur during the process, an error is thrown with a descriptive message.
+ *
+ * @example
+ * // Example usage:
+ * try {
+ *     const processValueProvidingModules = await getProcessValueProvidingModules();
+ *     // Process the array of modules providing process data...
+ * } catch (error) {
+ *     // Handle the error...
+ * }
+ */
 async function getProcessValueProvidingModules() {
     const modules = [];
     try {
@@ -74,18 +94,43 @@ const blacklist = [
     { moduleName: 'RealTimeScheduler', instanceNameRegExp: /ThreadData$/ }        // ThreadData is for internal use only
 ];
 
-/*
-* function: findInstance
-*/
+/**
+ * Recursively finds and structures process data instances from a given instance object.
+ *
+ * @param {Object} instance - The instance object containing information about a module, instance, and substructure.
+ * @returns {Promise<Array<Object>>} - A promise that resolves with an array of structured process data instances.
+ * @throws {Error} - Throws an error if there is an issue retrieving the ProcessDataDescription or creating the object hierarchy.
+ *
+ * @description
+ * This asynchronous function recursively traverses the provided instance object and extracts information about modules,
+ * instances, and objects. It filters out entries without instance or object names and checks for blacklist entries.
+ * For valid entries, it retrieves the ProcessDataDescription, creates a structured object hierarchy, and returns an array
+ * of structured process data instances. If any issues occur during this process, an error is thrown with a descriptive message.
+ *
+ * @example
+ * // Example usage:
+ * const instanceData = {...}; // An instance object containing information about modules, instances, and substructure.
+ * try {
+ *     const structuredInstances = await recursiveFindInstance(instanceData);
+ *     // Process the array of structured process data instances...
+ * } catch (error) {
+ *     // Handle the error...
+ * }
+ */
 // eslint-disable-next-line max-statements, complexity
 async function recursiveFindInstance(instance) {
+    // Initialize the result array.
     const result = [];
+
+    // Check if the instance has a 'substructure' property.
     if (Object.prototype.hasOwnProperty.call(instance, 'substructure')) {
+        // Recursively process each element in the 'substructure'.
         for (const element of instance.substructure) {
             const subResult = await recursiveFindInstance(element);
             result.push(...subResult);
         }
     } else {
+        // Extract module, instance, and object names from the instance.
         const moduleName = instance.moduleName;
         const instanceName = instance.instanceName;
         const objectName = instance.objectName;
@@ -101,12 +146,18 @@ async function recursiveFindInstance(instance) {
         }
 
         try {
+            // Retrieve the ProcessDataDescription for the module, instance, and object.
             const processDataDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
+
+            // Create a structured object hierarchy based on the ProcessDataDescription.
             const structuredProcessDataDescription = createObjectHierarchy(processDataDescription, moduleName, instanceName, objectName);
+
+            // Create an object with the instance name and the structured process data description.
             const object = {
                 name: instanceName,
                 values: structuredProcessDataDescription,
             };
+            // Push the object into the result array.
             result.push(object);
         } catch (error) {
             const errMsg = `Can't get ProcessDataDescription for module: ${moduleName},  instance: ${instanceName}, object: ${objectName}: ${error}`;

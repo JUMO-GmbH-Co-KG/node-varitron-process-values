@@ -23,23 +23,39 @@ const setPlcActiveFlags = async () => {
     });
     await write(writeList);
 };
-
+/**
+ * Retrieves all selectors corresponding to the 'PlcActive' process value within the EtherCatGateway module.
+ *
+ * @returns {Promise<Array<string>>} - A promise that resolves to an array of PlcActive selectors.
+ *
+ * @description
+ * This asynchronous function fetches the ProcessDataDescription for the specified module, instance, and object
+ * via DBus. It then creates an object hierarchy from the process description and identifies all occurrences
+ * of the 'PlcActive' process value within the structured description. The resulting array contains selectors
+ * representing the locations of PlcActive in the hierarchy.
+ *
+ * @example
+ * // Example usage:
+ * const plcActiveSelectors = await getPlcActiveFlagSelectors();
+ * console.log(plcActiveSelectors);
+ * // Output: ["ProcessData#EtherCatGateway#ProcessData#AnalogModuleOutput#CTR04_11/BinarySystemOutputs/PlcActive"]
+ */
 const getPlcActiveFlagSelectors = async () => {
     const moduleName = 'EtherCatGateway';
     const objectName = 'ProcessData';
     const instanceName = 'AnalogModuleOutput';
 
-    // get ProcessDataDescription of EtherCatGateway via DBus
+    // Fetch ProcessDataDescription of EtherCatGateway via DBus
     const processDescription = await getProcessDataDescription(
         moduleName,
         instanceName,
         objectName,
         'us_EN');
 
-    // create object hierarchy from processDescription
+    // Create object hierarchy from processDescription
     const structuredProcessDataDescription = createObjectHierarchy(processDescription, moduleName, instanceName, objectName);
 
-    // find all PlcActive occurences in structuredProcessDataDescription
+    // Find all PlcActive occurrences in structuredProcessDataDescription
     // example: "selector": "ProcessData#EtherCatGateway#ProcessData#AnalogModuleOutput#CTR04_11/BinarySystemOutputs/PlcActive",
     const plcActiveSelectors = [];
     const processDataDescriptionString = JSON.stringify(structuredProcessDataDescription);
