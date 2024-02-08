@@ -90,8 +90,9 @@ export async function getList() {
 const blacklist = [
     { moduleName: 'EtherCatGateway', instanceNameRegExp: /\d{6}\/\w+Selector/ },  // All instances of EtherCatGateway with a name like 705020/OutputSelector are not accessable
     { moduleName: 'EtherCatGateway', instanceNameRegExp: /Initialization$/ },     // Initialization are for internal use only
+    { moduleName: 'EtherCatGateway', instanceNameRegExp: /[d|D]ummy/ },           // Dummy instances are for internal use only
     { moduleName: 'RealTimeScheduler', instanceNameRegExp: /DebugData$/ },        // DebugData is for internal use only
-    { moduleName: 'RealTimeScheduler', instanceNameRegExp: /ThreadData$/ }        // ThreadData is for internal use only
+    { moduleName: 'RealTimeScheduler', instanceNameRegExp: /ThreadData$/ },       // ThreadData is for internal use only
 ];
 
 /**
