@@ -54,25 +54,18 @@ const getPlcActiveFlagSelectors = async () => {
 
     // Create object hierarchy from processDescription
     const structuredProcessDataDescription = createObjectHierarchy(processDescription, moduleName, instanceName, objectName);
-
-    // Find all PlcActive occurrences in structuredProcessDataDescription
-    // example: "selector": "ProcessData#EtherCatGateway#ProcessData#AnalogModuleOutput#CTR04_11/BinarySystemOutputs/PlcActive",
-    const plcActiveSelectors = [];
     const processDataDescriptionString = JSON.stringify(structuredProcessDataDescription);
-    const plcActiveRegex = /"selector"\s*:\s*"(?<selector>[^"]*BinarySystemOutputs\/PlcActive)"/g;
-    let match;
-    while ((match = plcActiveRegex.exec(processDataDescriptionString)) !== null) {
-        // This is necessary to avoid infinite loops with zero-width matches
-        if (match.index === plcActiveRegex.lastIndex) {
-            plcActiveRegex.lastIndex++;
-        }
 
-        plcActiveSelectors.push(match.groups.selector);
-    }
+    // get all PlcActive selectors
+    const plcActiveRegex = /"selector"\s*:\s*"(?<selector>[^"]*BinarySystemOutputs\/PlcActive)"/g;
+    const plcActiveSelectors = Array.from(
+        processDataDescriptionString.matchAll(plcActiveRegex),
+        match => match.groups.selector
+    );
 
     return plcActiveSelectors;
 };
 
 export {
-    setPlcActiveFlags
+    setPlcActiveFlags,
 };

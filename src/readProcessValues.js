@@ -1,9 +1,6 @@
-import { getProcessDataDescription } from './providerHandler.js';
+import { getProcessDataDescriptionBySelector } from './providerHandler.js';
 import { getObjectFromUrl, getNestedProcessValueDescription } from './processValueUrl.js';
-import { native } from './importShm.js';
-
-// map to store shared memory objects with the shmKey as key 
-const sharedMemoryMap = new Map();
+import { attachToSharedMemory } from './bufferHandler.js';
 
 /**
  * Reads process values from the given input.
@@ -24,7 +21,7 @@ export async function read(input) {
     for (const item of input) {
         try {
             const selector = (typeof item === 'string') ? item : item.selector;
-            const result = await readFromUrl(selector);
+            const result = await readValue(selector);
             results.push(result);
         } catch (e) {
             return Promise.reject(new Error(`Can't read process value of ${JSON.stringify(item)}: ${e}`));
@@ -38,6 +35,19 @@ export async function read(input) {
     return Promise.resolve(results);
 }
 
+function validateSelector(selector) {
+    if (typeof selector !== 'string') {
+        throw new Error('selector is not a string');
+    }
+}
+
+function getBufferStartAddress(processDescription, buf, offsetManagementBuffer) {
+    const isDoubleBuffer = processDescription.doubleBuffer;
+    const singleSizeSharedMemory = processDescription.sizeOfSharedMemory;
+    const activeReadBuffer = isDoubleBuffer ? buf.readUInt32LE(0) : 0;
+    return isDoubleBuffer ? offsetManagementBuffer + activeReadBuffer * singleSizeSharedMemory : 0;
+}
+
 /**
  * Reads data from a specified URL and retrieves information from the System based on the provided selector.
  *
@@ -45,93 +55,45 @@ export async function read(input) {
  * @returns {Promise<Object>} - A promise that resolves with an object containing information read from the specified URL.
  * @throws {Error} - Throws an error if there's an issue with input validation, D-Bus communication, or shared memory operations.
  */
-// eslint-disable-next-line max-statements
-async function readFromUrl(selector) {
-    // Validate input to ensure the selector is a string.
-    if (typeof selector !== 'string') {
-        return Promise.reject(new Error('selector is not a string'));
-    }
+async function readValue(selector) {
+    validateSelector(selector);
 
-    // Parse parameters from the selector URL.
+    // get process description via dbus
+    const processDescription = await getProcessDataDescriptionBySelector(selector);
     const selectorDescription = getObjectFromUrl(selector);
-
-    // Retrieve ProcessDataDescription from D-Bus based on the parsed selector.
-    const processDescription = await getProcessDataDescription(
-        selectorDescription.moduleName,
-        selectorDescription.instanceName,
-        selectorDescription.objectName,
-        'us_EN');
-
     const valueDescription = getNestedProcessValueDescription(processDescription, selectorDescription.parameterUrl);
 
-    /* ManagementBuffer structure (12 byte length)
-    *  0 = activeReadBuffer
-    *  4 = activeWriteBuffer
-    *  8 = seqlock (flag for buffer manipulation)
-    */
+    // attach to shared memory
     const offsetManagementBuffer = 12;
-    const isDoubleBuffer = processDescription.doubleBuffer;
-    const sharedMemoryKey = processDescription.key;
-    const lengthSharedMemory = processDescription.sizeOfSharedMemory;
+    const memory = attachToSharedMemory(processDescription, offsetManagementBuffer);
 
-    // the size of the shared memory depends on the buffer type - double buffer needs 2x the size
-    const sizeSharedMemory = isDoubleBuffer ? 2 * lengthSharedMemory + offsetManagementBuffer : lengthSharedMemory;
+    // read the content of the shared memory
+    const dataBuffer = memory.buffer;
 
-    // get shmKey by key from description file plus extension
-    const shmKey = sharedMemoryKey + 'SharedMemory';
+    // read value based on type and metadata - this contains the error code
+    const bufferStartAddress = getBufferStartAddress(processDescription, dataBuffer, offsetManagementBuffer);
+    const value = getProcessValue(valueDescription, dataBuffer, bufferStartAddress);
+    const errorCode = getErrorCodeFromMetaData(valueDescription, dataBuffer, bufferStartAddress, value);
+    const errorText = getErrorText(errorCode);
 
-    // set semaphore name based on buffer type
-    const semaphoreKey = `${sharedMemoryKey}Semaphore${isDoubleBuffer ? 'WriteLock' : 'BufferLock'}`;
-    try {
-        // if the shared memory object is not yet created, create it, else use the existing one
-        let memory;
-        if (!sharedMemoryMap.has(shmKey)) {
-            // create shared memory object in c++
-            const creationType = 0; // attachToExistingLock
-            memory = new native.SharedMemory(shmKey, sizeSharedMemory, isDoubleBuffer, semaphoreKey, creationType);
-            sharedMemoryMap.set(shmKey, memory);
-        } else {
-            memory = sharedMemoryMap.get(shmKey);
+    // until now only one measurement range is supported
+    const measurementRangeIndex = 0;
+    const measurementRange = valueDescription.measurementRangeAttributes?.[measurementRangeIndex];
+
+    // use POSIX language for unit because this is always available
+    const unit = measurementRange?.unitText?.POSIX || '';
+
+    return {
+        selector,
+        value,
+        type: valueDescription.type,
+        readOnly: valueDescription.readOnly,
+        unit,
+        error: {
+            code: errorCode,
+            text: errorText
         }
-
-        const buf = memory.buffer;
-
-        // get the active read buffer from management buffer if double buffer is used
-        const activeReadBuffer = isDoubleBuffer ? buf.readUInt32LE(0) : 0;
-
-        // calculate general offset inside shared memory depending on buffer type
-        const bufferStartAddress = isDoubleBuffer ? offsetManagementBuffer + activeReadBuffer * lengthSharedMemory : 0;
-
-        // read value from shared memory based on type
-        const value = getProcessValue(valueDescription, buf, bufferStartAddress);
-
-        // read metadata from process value - this contains the error code
-        const errorCode = getErrorCodeFromMetaData(valueDescription, buf, bufferStartAddress, value);
-        const errorText = getErrorText(errorCode);
-
-        // until now only one measurement range is supported
-        const measurementRangeIndex = 0;
-        const measurementRange = valueDescription.measurementRangeAttributes?.[measurementRangeIndex];
-
-        // use POSIX language for unit because this is always available
-        const unit = measurementRange?.unitText?.POSIX || '';
-
-        const result = {
-            selector,
-            value,
-            type: valueDescription.type,
-            readOnly: valueDescription.readOnly,
-            unit,
-            error: {
-                code: errorCode,
-                text: errorText
-            }
-        };
-
-        return Promise.resolve(result);
-    } catch (e) {
-        return Promise.reject(e);
-    }
+    };
 }
 /**
  * Extracts the error code from metadata based on the provided value description and shared memory buffer.

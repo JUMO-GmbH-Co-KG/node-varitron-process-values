@@ -1,3 +1,5 @@
+import { native } from './importShm.js';
+
 /**
  * Retrieves the process data description buffer entry for a specified module, instance, and object.
  *
@@ -34,4 +36,27 @@ export function getProcessDataDescriptionBuffer(moduleName, instanceName, object
     } else {
         return undefined;
     }
+}
+
+export function attachToSharedMemory(processDescription, offsetManagementBuffer) {
+    // create cache for shared memory objects if not already existing
+    if (typeof attachToSharedMemory.cache === 'undefined') {
+        attachToSharedMemory.cache = new Map();
+    }
+
+    const sharedMemoryKey = processDescription.key;
+    const shmKey = sharedMemoryKey + 'SharedMemory';
+
+    // return shared memory object out of cache if already existing or create new one
+    return attachToSharedMemory.cache.get(shmKey) || (() => {
+        const isDoubleBuffer = processDescription.doubleBuffer;
+        const singleSizeSharedMemory = processDescription.sizeOfSharedMemory;
+        const sizeSharedMemory = isDoubleBuffer ? 2 * singleSizeSharedMemory + offsetManagementBuffer : singleSizeSharedMemory;
+        const semaphoreKey = `${sharedMemoryKey}Semaphore${isDoubleBuffer ? 'WriteLock' : 'BufferLock'}`;
+        const creationType = 0; // attachToExistingLock
+
+        const newMemory = new native.SharedMemory(shmKey, sizeSharedMemory, isDoubleBuffer, semaphoreKey, creationType);
+        attachToSharedMemory.cache.set(shmKey, newMemory);
+        return newMemory;
+    })();
 }

@@ -1,9 +1,6 @@
-import { getProcessDataDescription } from './providerHandler.js';
+import { getProcessDataDescriptionBySelector } from './providerHandler.js';
 import { getObjectFromUrl, getNestedProcessValueDescription } from './processValueUrl.js';
-import { native } from './importShm.js';
-
-// map to store shared memory objects with the shmKey as key 
-const sharedMemoryMap = new Map();
+import { attachToSharedMemory } from './bufferHandler.js';
 
 /**
  * Writes values for the specified selectors using the writeValue function.
@@ -46,7 +43,6 @@ export async function write(input) {
         input = [input];
     }
 
-    // Initialize an array to store write results.
     const results = [];
     // Iterate through each item in the input and perform the write operation.
     for (const item of input) {
@@ -56,7 +52,6 @@ export async function write(input) {
                 done: true,
             });
         } catch (e) {
-            // Generate an error message for issues during the write operation.
             return Promise.reject(new Error(`Can't write ${JSON.stringify(item)}: ${e}`));
         }
     }
@@ -65,9 +60,9 @@ export async function write(input) {
     if (results.length === 1) {
         return Promise.resolve(results[0]);
     }
-    // Resolve the promise with the array of write results.
     return Promise.resolve(results);
 }
+
 /**
  * Writes the specified value to the shared memory based on the given selector.
  *
@@ -94,113 +89,62 @@ export async function write(input) {
  *     // Handle the error...
  * }
  */
-// eslint-disable-next-line max-statements, complexity
-async function writeValue(selector, value) {
-    // Validate the input parameters.
+function validateInput(selector, value) {
     if (typeof selector !== 'string') {
-        return Promise.reject(new Error('selector is not a string'));
+        throw new Error('selector is not a string');
     }
     if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
-        return Promise.reject(new Error('value is not a string, number or boolean'));
-    }
-
-    // Get parameters from the selector.
-    const selectorDescription = getObjectFromUrl(selector);
-
-    // Get ProcessDataDescription from DBus.
-    const processDescription = await getProcessDataDescription(
-        selectorDescription.moduleName,
-        selectorDescription.instanceName,
-        selectorDescription.objectName,
-        'us_EN');
-
-    // Get the nested process value description based on the parameter URL.
-    const valueDescription = getNestedProcessValueDescription(processDescription, selectorDescription.parameterUrl);
-
-    // Check if the process value is read-only.
-    if (valueDescription.readOnly) {
-        return Promise.reject(new Error('Not allowed to write read-only process values'));
-    }
-
-    // Perform additional checks for the correct type of input value.
-    checkInputValueType(value, valueDescription);
-
-    /* ManagementBuffer structure (12 byte length)
-    *  0 = activeReadBuffer
-    *  4 = activeWriteBuffer
-    *  8 = seqlock (flag for buffer manipulation)
-    */
-    const offsetManagementBuffer = 12;
-    const isDoubleBuffer = processDescription.doubleBuffer;
-
-    // Check for double buffer and restrict writing if present.
-    if (isDoubleBuffer) {
-        return Promise.reject(new Error('Value is inside a double buffer. It is not allowed to write to double buffer'));
-    }
-    const sharedMemoryKey = processDescription.key;
-    const lengthSharedMemory = processDescription.sizeOfSharedMemory;
-
-    // the size of the shared memory depends on the buffer type - double buffer needs 2x the size
-    const sizeSharedMemory = isDoubleBuffer ? 2 * lengthSharedMemory + offsetManagementBuffer : lengthSharedMemory;
-
-    // get shmKey by key from description file plus extension
-    const shmKey = sharedMemoryKey + 'SharedMemory';
-
-    // set semaphore name based on buffer type
-    const semaphoreKey = `${sharedMemoryKey}Semaphore${isDoubleBuffer ? 'WriteLock' : 'BufferLock'}`;
-    try {
-        // if the shared memory object is not yet created, create it, else use the existing one
-        let memory;
-        if (!sharedMemoryMap.has(shmKey)) {
-            // Create shared memory object in C++.
-            const creationType = 0; // attachToExistingLock
-            memory = new native.SharedMemory(shmKey, sizeSharedMemory, isDoubleBuffer, semaphoreKey, creationType);
-            sharedMemoryMap.set(shmKey, memory);
-        } else {
-            memory = sharedMemoryMap.get(shmKey);
-        }
-
-        const buf = memory.buffer;
-
-        // Get the active write buffer from the management buffer if double buffer is used.
-        const activeWriteBuffer = isDoubleBuffer ? buf.readUInt32LE(4) : 0;
-
-        // Calculate the general offset inside shared memory depending on the buffer type.
-        const bufferStartAddress = isDoubleBuffer ? offsetManagementBuffer + activeWriteBuffer * lengthSharedMemory : 0;
-
-        // Write the process value to the shared memory.
-        writeProcessValue(valueDescription, value, memory, bufferStartAddress);
-
-        // Write error code 0 after successful writing.
-        const errorCode = 0;
-        writeErrorCodeToMetaData(valueDescription, memory, errorCode);
-
-        return Promise.resolve();
-    } catch (e) {
-        return Promise.reject(e);
+        throw new Error('value is not a string, number or boolean');
     }
 }
-/**
- * Writes the error code to the metadata section of the shared memory based on the given value description.
- *
- * @param {Object} valueDescription - The description of the process value.
- * @param {Buffer} memory - The shared memory buffer.
- * @param {number} errorCode - The error code to be written to the metadata.
- * @returns {void}
- *
- * @description
- * This function writes the specified error code to the metadata section of the shared memory. It takes the value
- * description, shared memory buffer, and error code as parameters, calculates the offset within the metadata section,
- * and writes the error code to the buffer. Currently, only 4-byte metadata is supported. The function is designed to be
- * called after a successful write operation to update the metadata with the corresponding error code.
- *
- * @example
- * // Example usage:
- * const valueDescription = { offsetSharedMemory: 0, relativeOffsetMetadata: 4, sizeMetadata: 4 };
- * const memory = // ... obtain shared memory buffer
- * const errorCode = 0;
- * writeErrorCodeToMetaData(valueDescription, memory, errorCode);
- */
+
+function checkReadOnly(valueDescription) {
+    if (valueDescription.readOnly) {
+        throw new Error('Not allowed to write read-only process values');
+    }
+}
+
+function checkDoubleBufferUsage(processDescription) {
+    if (processDescription.doubleBuffer) {
+        throw new Error('Value is inside a double buffer which is not allowed to write');
+    }
+}
+
+function getBufferStartAddress(processDescription, buf, offsetManagementBuffer) {
+    const isDoubleBuffer = processDescription.doubleBuffer;
+    const singleSizeSharedMemory = processDescription.sizeOfSharedMemory;
+    const activeWriteBuffer = isDoubleBuffer ? buf.readUInt32LE(4) : 0;
+    return isDoubleBuffer ? offsetManagementBuffer + activeWriteBuffer * singleSizeSharedMemory : 0;
+}
+
+async function writeValue(selector, value) {
+    validateInput(selector, value);
+
+    // get process description via dbus
+    const processDescription = await getProcessDataDescriptionBySelector(selector);
+    const selectorDescription = getObjectFromUrl(selector);
+    const valueDescription = getNestedProcessValueDescription(processDescription, selectorDescription.parameterUrl);
+
+    checkReadOnly(valueDescription);
+    checkInputValueType(value, valueDescription);
+    checkDoubleBufferUsage(processDescription);
+
+    // attach to shared memory
+    const offsetManagementBuffer = 12;
+    const memory = attachToSharedMemory(processDescription, offsetManagementBuffer);
+
+    // read the content of the shared memory
+    const dataBuffer = memory.buffer;
+
+    // write the value to the shared memory
+    const bufferStartAddress = getBufferStartAddress(processDescription, dataBuffer, offsetManagementBuffer);
+    writeProcessValue(valueDescription, value, memory, bufferStartAddress);
+
+    // write error code 0 after successfull writing
+    const errorCode = 0;
+    writeErrorCodeToMetaData(valueDescription, memory, errorCode);
+}
+
 function writeErrorCodeToMetaData(valueDescription, memory, errorCode) {
     const offsetMetadata = valueDescription.offsetSharedMemory + valueDescription.relativeOffsetMetadata;
     const sizeMetadata = valueDescription.sizeMetadata;

@@ -71,10 +71,7 @@ const defaultServiceDescription = Object.freeze({
  * }
  */
 export async function dbusGateway(serviceDescription) {
-    // Merge the provided service description with default values.
     const description = Object.assign({}, defaultServiceDescription, serviceDescription);
-
-    // Retrieve the D-Bus instance reference.
     const bus = getBus();
 
     try {
@@ -84,24 +81,20 @@ export async function dbusGateway(serviceDescription) {
 
         // Check if the specified method is a function.
         if (typeof iface[description.method] !== 'function') {
-            const err = new Error(
+            throw new Error(
                 `No function '${description.method}' in ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}`
             );
-            return Promise.reject(err);
         }
 
         // Invoke the specified D-Bus method with the provided parameters.
         const response = await iface[description.method](...description.params);
 
-        // Disconnect from the D-Bus and reset the static D-Bus reference.
         bus.disconnect();
         staticDBusReference = null;
-
-        // Resolve the promise with the parsed response.
-        return Promise.resolve(parse(response));
+        return parse(response);
     } catch (err) {
-        // Generate an error message for issues during D-Bus method invocation.
-        const errMsg = `selector not found. ${err.message} @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`;
-        return Promise.reject(errMsg);
+        throw new Error(
+            `Selector not found. ${err.message} @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`
+        );
     }
 }

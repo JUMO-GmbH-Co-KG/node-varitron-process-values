@@ -1,5 +1,6 @@
 import { dbusGateway } from './dbusGateway.js';
 import { getProcessDataDescriptionBuffer } from './bufferHandler.js';
+import { getObjectFromUrl } from './processValueUrl.js';
 
 //buffer for ProcessDataDescription
 const ProcessDataDescriptionBuffer = [];
@@ -47,4 +48,20 @@ export async function getProcessDataDescription(moduleName, instanceName, object
         // Return the cached process description from the buffer.
         return processDescriptionBuffer;
     }
+}
+
+/**
+ * Retrieves the process data description based on the given selector.
+ * 
+ * @param {string} selector - The selector used to retrieve the process data description.
+ * @returns {Promise<Object>} - A promise that resolves to the process data description.
+ */
+export async function getProcessDataDescriptionBySelector(selector) {
+    const selectorDescription = getObjectFromUrl(selector);
+    return await getProcessDataDescription(
+        selectorDescription.moduleName,
+        selectorDescription.instanceName,
+        selectorDescription.objectName,
+        'us_EN'
+    );
 }
