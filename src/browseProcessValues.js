@@ -87,10 +87,9 @@ export async function getList() {
 }
 
 // filter out modules and instances that should not be shown because they are invalid, useless or for internal use only
-const blacklist = [
+const instanceBlocklist = [
     { moduleName: 'EtherCatGateway', instanceNameRegExp: /\d{6}\/\w+Selector/ },  // All instances of EtherCatGateway with a name like 705020/OutputSelector are not accessable
     { moduleName: 'EtherCatGateway', instanceNameRegExp: /Initialization$/ },     // Initialization are for internal use only
-    { moduleName: 'EtherCatGateway', instanceNameRegExp: /[d|D]ummy/ },           // Dummy instances are for internal use only
     { moduleName: 'RealTimeScheduler', instanceNameRegExp: /DebugData$/ },        // DebugData is for internal use only
     { moduleName: 'RealTimeScheduler', instanceNameRegExp: /ThreadData$/ },       // ThreadData is for internal use only
 ];
@@ -128,7 +127,7 @@ async function recursiveFindInstance(instance) {
     const { moduleName, instanceName, objectName } = instance;
 
     // filter out modules without instance or object (wtrans gateway has such a thing)
-    if (!instanceName || !objectName || blacklist.some(entry => entry.moduleName === moduleName && entry.instanceNameRegExp.test(instanceName))) {
+    if (!instanceName || !objectName || instanceBlocklist.some(entry => entry.moduleName === moduleName && entry.instanceNameRegExp.test(instanceName))) {
         return [];
     }
 
@@ -162,6 +161,15 @@ function setDeepProperty(destination, path, obj) {
     });
 }
 
+// filter out leafs that should not be shown because they are invalid, useless or for internal use only
+const leafObjectBlocklist = [
+    { moduleName: 'EtherCatGateway', object: /[d|D]ummy/ },           // Dummy objects are for internal use only
+    { moduleName: 'EtherCatGateway', object: /Free\d{3}/ },           // Objects like Free000 are only placeholders
+    { moduleName: 'EtherCatGateway', object: /NotCalibrated/ },       // NotCalibrated objects are for internal use only
+    { moduleName: 'EtherCatGateway', object: /Calib/ },               // Calib objects are for internal use only
+    { moduleName: 'EtherCatGateway', object: /ErrorCode/ },           // ErrorCode objects are for internal use only
+];
+
 /**
  * Recursively finds leaf objects in a source object and adds them to a destination object hierarchy.
  *
@@ -171,6 +179,11 @@ function setDeepProperty(destination, path, obj) {
  * @param {Array} objectPath - The current path in the object hierarchy.
  */
 function recursiveFindLeafObjects(destination, source, description, objectPath) {
+    // filter out leafs that should not be shown because they are invalid, useless or for internal use only
+    if (leafObjectBlocklist.some(entry => entry.moduleName === description.moduleName && entry.object.test(objectPath[objectPath.length - 1]))) {
+        return;
+    }
+
     for (const key in source) {
         if (hasProperty(source, key)) {
             const value = source[key];
