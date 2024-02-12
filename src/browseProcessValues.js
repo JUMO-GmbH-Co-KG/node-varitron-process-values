@@ -202,11 +202,9 @@ function recursiveFindLeafObjects(destination, source, description, objectPath) 
         return;
     }
 
+    // leafs with 'offsetSharedMemory' property are process values but can contain internal data that should not be visible
+    // @todo: use 'selectorTypeListEndpoint' instead. problem: the outputs of ethercat modules have no 'selectorTypeListEndpoint' property. Don't know why.
     if (hasProperty(source, 'offsetSharedMemory')) {
-        // last element in the path is the name of the element
-        // @todo: the real name is source.labelText
-        const name = objectPath.slice(-1)[0];
-
         // pathName is the path to the element as a string, divided by '/'
         const pathName = objectPath.join('/');
 
@@ -217,7 +215,7 @@ function recursiveFindLeafObjects(destination, source, description, objectPath) 
         const unit = hasProperty(source, 'measurementRangeAttributes') ? source.measurementRangeAttributes[0].unitText.POSIX : '';
 
         setDeepProperty(destination, objectPath, {
-            name,
+            name: source.labelText,
             selector: `ProcessData#${description.moduleName}#${description.objectName}#${description.instanceName}#${pathName}`,
             type: source.type,
             readOnly: source.readOnly,
