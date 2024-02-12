@@ -123,21 +123,29 @@ async function recursiveFindInstance(instance) {
         return (await Promise.all(instance.substructure.map(recursiveFindInstance))).flat();
     }
 
-    // filter out modules without instance or object (wtrans gateway has such a thing) or blacklisted instances
     const { moduleName, instanceName, objectName } = instance;
 
-    // filter out modules without instance or object (wtrans gateway has such a thing)
+    // filter out modules without instance or object (wtrans gateway has such a thing) or blacklisted instances
+    // this prefiltering should reduce the amount of dbus calls
     if (!instanceName || !objectName || instanceBlocklist.some(entry => entry.moduleName === moduleName && entry.instanceNameRegExp.test(instanceName))) {
         return [];
     }
 
     try {
         const processDataDescription = await getProcessDataDescription(moduleName, instanceName, objectName, 'us_EN');
-        const structuredProcessDataDescription = createObjectHierarchy(processDataDescription, moduleName, instanceName, objectName);
-        return [{
-            name: instanceName,
-            values: structuredProcessDataDescription,
-        }];
+
+        const structuredProcessDataDescription = {};
+        recursiveFindLeafObjects(structuredProcessDataDescription, processDataDescription, { moduleName, instanceName, objectName }, []);
+
+        // return only, if structuredProcessDataDescription has elements
+        if (Object.keys(structuredProcessDataDescription).length > 0) {
+            return [{
+                name: instanceName,
+                values: structuredProcessDataDescription,
+            }];
+        } else {
+            return [];
+        }
     } catch (error) {
         const errMsg = `Can't get ProcessDataDescription for module: ${moduleName},  instance: ${instanceName}, object: ${objectName}: ${error}`;
         throw new Error(errMsg);
@@ -183,56 +191,37 @@ function recursiveFindLeafObjects(destination, source, description, objectPath) 
     if (leafObjectBlocklist.some(entry => entry.moduleName === description.moduleName && entry.object.test(objectPath[objectPath.length - 1]))) {
         return;
     }
-
-    for (const key in source) {
-        if (hasProperty(source, key)) {
-            const value = source[key];
-
-            if (typeof value === 'object') {
-                const nextPath = objectPath.concat(key);
-                recursiveFindLeafObjects(destination, value, description, nextPath);
-            } else if (key === 'offsetSharedMemory') {
-                // If the property name is 'offsetSharedMemory', add the object to the hierarchy
-
-                // last element in the path is the name of the element
-                const name = objectPath.slice(-1)[0];
-
-                // cleanPath is the path to the element without 'value' fields
-                const cleanPath = objectPath.filter(item => item !== 'value');
-
-                // pathName is the path to the element as a string, divided by '/'
-                const pathName = cleanPath.join('/');
-
-                // if we use array indices in the path, we need to replace them with '#value[index]'
-                // pathName = pathName.replace(/\[(\d+)\]/g, '#value[$1]');
-
-                // add unit if unit is available
-                const unit = hasProperty(source, 'measurementRangeAttributes') ? source.measurementRangeAttributes[0].unitText.POSIX : '';
-
-                setDeepProperty(destination, cleanPath, {
-                    name,
-                    selector: `ProcessData#${description.moduleName}#${description.objectName}#${description.instanceName}#${pathName}`,
-                    type: source.type,
-                    readOnly: source.readOnly,
-                    unit
-                });
-            }
+    
+    // if a source is of type TreeNode, there are structures one stage deeper in the value property
+    if (hasProperty(source, 'type') && source.type === 'TreeNode') {
+        // recursive call this function with all structures
+        for (const [key, value] of Object.entries(source.value)) {
+            const nextPath = objectPath.concat(key);
+            recursiveFindLeafObjects(destination, value, description, nextPath);
         }
+        return;
     }
-}
 
-/**
- * Creates an object hierarchy based on the provided object, moduleName, instanceName, and objectName.
- * The hierarchy is built by recursively finding leaf objects that represent process values and adding them to the hierarchy.
- *
- * @param {object} obj - The source object to create the hierarchy from.
- * @param {string} moduleName - The name of the module.
- * @param {string} instanceName - The name of the instance.
- * @param {string} objectName - The name of the object.
- * @returns {object} - The created object hierarchy.
- */
-export function createObjectHierarchy(obj, moduleName, instanceName, objectName) {
-    const processValueHierarchy = {};
-    recursiveFindLeafObjects(processValueHierarchy, obj, { moduleName, instanceName, objectName }, []);
-    return processValueHierarchy;
+    if (hasProperty(source, 'offsetSharedMemory')) {
+        // last element in the path is the name of the element
+        // @todo: the real name is source.labelText
+        const name = objectPath.slice(-1)[0];
+
+        // pathName is the path to the element as a string, divided by '/'
+        const pathName = objectPath.join('/');
+
+        // if we use array indices in the path, we need to replace them with '#value[index]'
+        // pathName = pathName.replace(/\[(\d+)\]/g, '#value[$1]');
+
+        // add unit if unit is available
+        const unit = hasProperty(source, 'measurementRangeAttributes') ? source.measurementRangeAttributes[0].unitText.POSIX : '';
+
+        setDeepProperty(destination, objectPath, {
+            name,
+            selector: `ProcessData#${description.moduleName}#${description.objectName}#${description.instanceName}#${pathName}`,
+            type: source.type,
+            readOnly: source.readOnly,
+            unit
+        });
+    }
 }
