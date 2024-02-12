@@ -1,5 +1,4 @@
 import { getProcessDataDescription } from './providerHandler.js';
-import { createObjectHierarchy } from './browseProcessValues.js';
 import { write } from './writeProcessValues.js';
 
 /**
@@ -23,6 +22,18 @@ const setPlcActiveFlags = async () => {
     });
     await write(writeList);
 };
+
+/**
+ * Checks if an object has a property.
+ *
+ * @param {object} obj - The object.
+ * @param {string} prop - The property name.
+ * @returns {boolean} - True if the object has the property, false otherwise.
+ */
+function hasProperty(obj, prop) {
+    return Object.prototype.hasOwnProperty.call(obj, prop);
+}
+
 /**
  * Retrieves all selectors corresponding to the 'PlcActive' process value within the EtherCatGateway module.
  *
@@ -33,12 +44,6 @@ const setPlcActiveFlags = async () => {
  * via DBus. It then creates an object hierarchy from the process description and identifies all occurrences
  * of the 'PlcActive' process value within the structured description. The resulting array contains selectors
  * representing the locations of PlcActive in the hierarchy.
- *
- * @example
- * // Example usage:
- * const plcActiveSelectors = await getPlcActiveFlagSelectors();
- * console.log(plcActiveSelectors);
- * // Output: ["ProcessData#EtherCatGateway#ProcessData#AnalogModuleOutput#CTR04_11/BinarySystemOutputs/PlcActive"]
  */
 const getPlcActiveFlagSelectors = async () => {
     const moduleName = 'EtherCatGateway';
@@ -52,19 +57,39 @@ const getPlcActiveFlagSelectors = async () => {
         objectName,
         'us_EN');
 
-    // Create object hierarchy from processDescription
-    const structuredProcessDataDescription = createObjectHierarchy(processDescription, moduleName, instanceName, objectName);
-    const processDataDescriptionString = JSON.stringify(structuredProcessDataDescription);
-
-    // get all PlcActive selectors
-    const plcActiveRegex = /"selector"\s*:\s*"(?<selector>[^"]*BinarySystemOutputs\/PlcActive)"/g;
-    const plcActiveSelectors = Array.from(
-        processDataDescriptionString.matchAll(plcActiveRegex),
-        match => match.groups.selector
-    );
-
+    // Find all selectors corresponding to the 'PlcActive' process value
+    const plcActiveSelectors = findAllMatchingSelectors(processDescription, { moduleName, instanceName, objectName }, []);
     return plcActiveSelectors;
 };
+
+/**
+ * Recursively finds leaf objects with 'PlcActive' in the name and returns their selectors.
+ *
+ * @param {object} source - The source object to search for leaf objects.
+ * @param {object} description - The description of the leaf objects with the module name, instance name, and object name.
+ * @param {Array} objectPath - The current path in the object hierarchy.
+ */
+function findAllMatchingSelectors(source, description, objectPath) {
+    const selectorList = [];
+
+    // if a source is of type TreeNode, there are structures one stage deeper in the value property
+    if (hasProperty(source, 'type') && source.type === 'TreeNode') {
+        // recursive call this function with all structures
+        for (const [key, value] of Object.entries(source.value)) {
+            const nextPath = objectPath.concat(key);
+            const matchingSelector = findAllMatchingSelectors(value, description, nextPath);
+            if (matchingSelector.length > 0) selectorList.push(...matchingSelector);
+        }
+    }
+
+    // collect all leafs with 'PlcActive' as last path element
+    if (objectPath[objectPath.length - 1] == 'PlcActive') {
+        const pathName = objectPath.join('/');
+        selectorList.push(`ProcessData#${description.moduleName}#${description.objectName}#${description.instanceName}#${pathName}`);
+    }
+
+    return selectorList;
+}
 
 export {
     setPlcActiveFlags,
