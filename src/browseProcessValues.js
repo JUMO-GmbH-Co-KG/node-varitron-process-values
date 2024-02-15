@@ -176,6 +176,7 @@ const leafObjectBlocklist = [
     { moduleName: 'EtherCatGateway', object: /NotCalibrated/ },       // NotCalibrated objects are for internal use only
     { moduleName: 'EtherCatGateway', object: /Calib/ },               // Calib objects are for internal use only
     { moduleName: 'EtherCatGateway', object: /ErrorCode/ },           // ErrorCode objects are for internal use only
+    { moduleName: 'EtherCatGateway', object: /Logentry/ },            // Logentry objects are for internal use only
 ];
 
 /**
@@ -191,7 +192,7 @@ function recursiveFindLeafObjects(destination, source, description, objectPath) 
     if (leafObjectBlocklist.some(entry => entry.moduleName === description.moduleName && entry.object.test(objectPath[objectPath.length - 1]))) {
         return;
     }
-    
+
     // if a source is of type TreeNode, there are structures one stage deeper in the value property
     if (hasProperty(source, 'type') && source.type === 'TreeNode') {
         // recursive call this function with all structures
