@@ -71,11 +71,7 @@ key_t SystemVKey::getInvalidKey()
 
 const std::string &SystemVKey::getKeyBasePath() const
 {
-#ifdef DESKTOP_BUILD
-    static const std::string keyBasePath = "/tmp/";
-#else
     static const std::string keyBasePath = "/jupiter/tmp/";
-#endif
     if (mkdir(keyBasePath.c_str(), S_IRWXU) != 0 && errno != EEXIST)
     {
         std::cerr << "Cannot create directory: " << keyBasePath << std::endl;
