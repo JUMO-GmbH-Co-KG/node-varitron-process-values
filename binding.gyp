@@ -21,8 +21,7 @@
                 "<!(node -p \"require('node-addon-api').gyp\")"
             ],
             "defines": [
-                "NAPI_CPP_EXCEPTIONS",
-                "<!@(grep -q -E \"ARMv7\" /proc/cpuinfo || echo \"DESKTOP_BUILD\")"
+                "NAPI_CPP_EXCEPTIONS"
             ]
         }
     ]
