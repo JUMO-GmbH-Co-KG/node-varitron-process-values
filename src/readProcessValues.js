@@ -114,7 +114,7 @@ function getErrorCodeFromMetaData(valueDescription, buf, bufferStartAddress, val
         metadata = buf.readUInt32LE(offsetMetadata + bufferStartAddress);
     } else if (valueDescription.sizeMetadata == 0) {
         // Case where metadata contains no error code.
-        // For legacy Jumo modules, extract error code from the value itself.
+        // For legacy JUMO devices/modules, extract error code from the value itself.
         if (valueDescription.type == 'Double') {
             metadata = getErrorCodeFromDoubleValue(value);
         } else if (valueDescription.type == 'Float') {
@@ -143,6 +143,8 @@ function getProcessValue(valueDescription, buf, bufferStartAddress) {
 
     // Define a map of value types to corresponding extraction functions.
     const valueMap = new Map([
+        ['Char', () => { return buf.readInt8(bufferStartAddress + offsetValue); }],
+        ['UnsignedChar', () => { return buf.readUInt8(bufferStartAddress + offsetValue); }],
         ['ShortInteger', () => { return buf.readInt16LE(bufferStartAddress + offsetValue); }],
         ['UnsignedShortInteger', () => { return buf.readUInt16LE(bufferStartAddress + offsetValue); }],
         ['Integer', () => { return buf.readInt32LE(bufferStartAddress + offsetValue); }],

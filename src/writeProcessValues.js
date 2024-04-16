@@ -186,6 +186,8 @@ function writeProcessValue(valueDescription, value, memory, bufferStartAddress) 
 
     // Type map to determine size and write function for each data type.
     const typeMap = {
+        'Char': { size: 1, writeFn: 'writeInt8' },
+        'UnsignedChar': { size: 1, writeFn: 'writeUInt8' },
         'ShortInteger': { size: 2, writeFn: 'writeInt16LE' },
         'UnsignedShortInteger': { size: 2, writeFn: 'writeUInt16LE' },
         'Integer': { size: 4, writeFn: 'writeInt32LE' },
@@ -244,7 +246,7 @@ function writeProcessValue(valueDescription, value, memory, bufferStartAddress) 
 function checkInputValueType(value, valueDescription) {
     const stringtypes = ['String', 'Selection', 'Selector'];
     const booltypes = ['Boolean', 'Bit'];
-    const numbertypes = ['ShortInteger', 'UnsignedShortInteger', 'Integer', 'UnsignedInteger', 'LongLong', 'UnsignedLongLong', 'Double', 'Float'];
+    const numbertypes = ['Char', 'UnsignedChar', 'ShortInteger', 'UnsignedShortInteger', 'Integer', 'UnsignedInteger', 'LongLong', 'UnsignedLongLong', 'Double', 'Float'];
 
     if (typeof value === 'string') {
         if (!stringtypes.includes(valueDescription.type)) {
