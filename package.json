@@ -1,5 +1,5 @@
 {
-  "name": "@jumo/varitron-process-values",
+  "name": "@jumo.net/varitron-process-values",
   "version": "1.0.18",
   "description": "Node.js module to browse, read and write JUMO variTRON process values.",
   "main": "index.js",
@@ -30,7 +30,7 @@
     "node-addon-api": "^7.1.0"
   },
   "publishConfig": {
-    "@jumo:registry": "https://registry.npmjs.org",
+    "@jumo.net:registry": "https://registry.npmjs.org",
     "access": "public"
   },
   "directories": {
