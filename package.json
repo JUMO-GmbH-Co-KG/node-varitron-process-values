@@ -10,6 +10,10 @@
     "coverage": "npx c8 mocha --loader=testdouble",
     "install": "node-gyp rebuild"
   },
+  "keywords": [
+    "jumo",
+    "varitron"
+  ],
   "license": "MIT",
   "author": "JUMO GmbH & Co. KG",
   "repository": {
