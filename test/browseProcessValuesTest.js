@@ -23,6 +23,7 @@ describe('getList function', async function () {
                     offsetSharedMemory: 0,
                     readOnly: false,
                     type: 'Boolean',
+                    labelText: 'SomeThing',
                 },
             },
         };
@@ -63,6 +64,7 @@ describe('getList function', async function () {
                     offsetSharedMemory: 0,
                     readOnly: false,
                     type: 'Boolean',
+                    labelText: 'SomeThing',
                 },
             },
         };
@@ -201,7 +203,7 @@ describe('getList function', async function () {
                         name: 'DatabaseManagement',
                         values: {
                             MemoryAlarm: {
-                                name: 'MemoryAlarm',
+                                name: 'Memory alarm',
                                 readOnly: false,
                                 selector: 'ProcessData#DataBaseManagement#ProcessData#DatabaseManagement#MemoryAlarm',
                                 type: 'Boolean',
@@ -408,6 +410,7 @@ describe('getList function', async function () {
                     offsetSharedMemory: 0,
                     readOnly: false,
                     type: 'Boolean',
+                    labelText: 'SomeThing',
                 },
             },
         };
