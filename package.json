@@ -25,6 +25,6 @@
     "node-addon-api": "^7.1.0"
   },
   "publishConfig": {
-    "registry": "https://de-lx-nexus01.jumo.net/repository/npm-jumo-ewsw-private/"
+    "access": "public"
   }
 }
