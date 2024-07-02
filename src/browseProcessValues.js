@@ -51,6 +51,7 @@ async function getProcessValueProvidingModules() {
  * @returns {Promise<Array>} A promise that resolves to an array of modules and their associated process values.
  * @throws {Error} If there is an error retrieving the list of process values.
 */
+// eslint-disable-next-line max-statements
 export async function getList() {
     // return provider list from cache if available
     if (typeof getList.providerCache !== 'undefined') {
@@ -67,7 +68,8 @@ export async function getList() {
 
             const result = [];
             for (const instance of instanceList) {
-                result.push(...await recursiveFindInstance(instance));
+                const activeInstances = await recursiveFindInstance(instance);
+                result.push(...activeInstances);
             }
 
             // keep only modules with instances because we don't want to see modules without process values
@@ -117,12 +119,22 @@ const instanceBlocklist = [
  *     // Handle the error...
  * }
  */
+// eslint-disable-next-line max-statements
 async function recursiveFindInstance(instance) {
-    // if instance has substructure, call recursiveFindInstance for each substructure
+    // if instance has a substructure, recursive call recursiveFindInstance for each substructure
     if (hasProperty(instance, 'substructure')) {
-        return (await Promise.all(instance.substructure.map(recursiveFindInstance))).flat();
+        const filteredSubInstances = [];
+        // process each substucture after another to avoid parallel dbus calls
+        for (const subInstance of instance.substructure) {
+            const result = await recursiveFindInstance(subInstance);
+
+            // add flat list of subinstances to to our list, if there are any
+            if (result.length > 0) filteredSubInstances.push(...result);
+        }
+        return filteredSubInstances;
     }
 
+    // process the leaf instance
     const { moduleName, instanceName, objectName } = instance;
 
     // filter out modules without instance or object (wtrans gateway has such a thing) or blacklisted instances

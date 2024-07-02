@@ -32,7 +32,7 @@ export async function getProcessDataDescription(moduleName, instanceName, object
         };
 
         // Invoke the D-Bus gateway to get the process description.
-        const processDescription = dbusGateway(serviceDescription);
+        const processDescription = await dbusGateway(serviceDescription);
 
         // Push the received process description to the buffer.
         ProcessDataDescriptionBuffer.push({
