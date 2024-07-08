@@ -36,7 +36,7 @@ const unsignedIntwritten2 = await read('ProcessData#EtherCatGateway#ProcessData#
 console.log('unsignedIntwritten(456): ' + JSON.stringify(unsignedIntwritten2));
 
 
-// read and write Float (ethercatgateway) @todo: another example
+// read and write Float (ethercatgateway)
 const float = await read('ProcessData#EtherCatGateway#ProcessData#AnalogModuleInput#CTR04_5/ActualValues/ActualValue001');
 console.log('Float: ' + JSON.stringify(float));
 

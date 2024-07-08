@@ -3,10 +3,6 @@
  *
  * @brief  This Class wraps basic functionality of a System V Semaphore
  *
- * @date   22.09.15
- *
- * @author Eugen Wiens
- *
  */
 
 #include "SystemVSemaphoreBaseClass.hpp"

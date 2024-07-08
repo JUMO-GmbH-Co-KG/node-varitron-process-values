@@ -3,10 +3,6 @@
  *
  * @brief  This Class wraps basic functionality of a System V Semaphore. Additionally, this module takes care of the needed iNode to create a token key for the System V mechanisms.
  *
- * @date   22.09.15
- *
- * @author Eugen Wiens
- *
  */
 
 #pragma once

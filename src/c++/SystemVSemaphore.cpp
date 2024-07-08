@@ -3,10 +3,6 @@
  *
  * @brief  This Class abstracts the System V Semaphore
  *
- * @date   21.09.15
- *
- * @author Eugen Wiens
- *
 */
 
 #include "SystemVSemaphore.hpp"

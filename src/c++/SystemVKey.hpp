@@ -4,10 +4,6 @@
  * @brief  This Class wraps creation of a System V key. Because the System V keys are based on inodes,
  *         a file in the temp folder is created if necessary.
  *
- * @date   04.05.16
- *
- * @author Eugen Wiens
- *
  */
 
 #pragma once

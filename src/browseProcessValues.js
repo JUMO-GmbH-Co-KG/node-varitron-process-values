@@ -216,7 +216,7 @@ function recursiveFindLeafObjects(destination, source, description, objectPath) 
     }
 
     // leafs with 'offsetSharedMemory' property are process values but can contain internal data that should not be visible
-    // @todo: use 'selectorTypeListEndpoint' instead. problem: the outputs of ethercat modules have no 'selectorTypeListEndpoint' property. Don't know why.
+    // @todo: use 'selectorTypeListEndpoint' instead. problem: the outputs of ethercat modules have no 'selectorTypeListEndpoint' property. This will be coming in a future release.
     if (hasProperty(source, 'offsetSharedMemory')) {
         // pathName is the path to the element as a string, divided by '/'
         const pathName = objectPath.join('/');
