@@ -1,0 +1,6 @@
+node_modules/
+build/
+.vscode/
+src/test.js
+providerlist.json
+coverage/
