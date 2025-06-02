@@ -1,6 +1,6 @@
 {
   "name": "@jumo.net/varitron-process-values",
-  "version": "1.0.20",
+  "version": "1.0.22",
   "description": "Node.js module to browse, read and write JUMO variTRON process values.",
   "main": "index.js",
   "type": "module",
@@ -18,7 +18,7 @@
   "author": "JUMO GmbH & Co. KG",
   "repository": {
     "type": "git",
-    "url": "https://github.com/JUMO-GmbH-Co-KG/node-varitron-process-values.git"
+    "url": "git+https://github.com/JUMO-GmbH-Co-KG/node-varitron-process-values.git"
   },
   "devDependencies": {
     "c8": "^10.1.2",
@@ -32,10 +32,6 @@
   "dependencies": {
     "@quadratclown/dbus-next": "^1.0.2",
     "node-addon-api": "^7.1.0"
-  },
-  "publishConfig": {
-    "@jumo.net:registry": "https://registry.npmjs.org",
-    "access": "public"
   },
   "directories": {
     "example": "example",

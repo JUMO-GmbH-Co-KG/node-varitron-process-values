@@ -1,6 +1,6 @@
+import { attachToSharedMemory, getBufferType, getCurrentBufferStartAddress } from './bufferHandler.js';
+import { getNestedProcessValueDescription, getObjectFromUrl } from './processValueUrl.js';
 import { getProcessDataDescriptionBySelector } from './providerHandler.js';
-import { getObjectFromUrl, getNestedProcessValueDescription } from './processValueUrl.js';
-import { attachToSharedMemory } from './bufferHandler.js';
 
 /**
  * Writes values for the specified selectors using the writeValue function.
@@ -63,32 +63,6 @@ export async function write(input) {
     return Promise.resolve(results);
 }
 
-/**
- * Writes the specified value to the shared memory based on the given selector.
- *
- * @param {string} selector - The selector specifying the process value to write.
- * @param {string|number|boolean} value - The value to be written to the process value.
- * @returns {Promise<void>} - A promise that resolves after the write operation is completed successfully.
- * @throws {Error} - Throws an error if there is an issue during the write operation or if validation checks fail.
- *
- * @description
- * This asynchronous function validates the input parameters, retrieves the necessary process description information
- * from DBus, and writes the specified value to the shared memory. It performs validation checks on the selector and value
- * types, ensures that the process value is not read-only, and handles double buffer restrictions. If successful, it writes
- * the value to the shared memory, updates the error code metadata, and resolves the promise. If any issues occur during
- * the process, an error is thrown with a descriptive message.
- *
- * @example
- * // Example usage:
- * const selector = 'exampleSelector';
- * const value = 42;
- * try {
- *     await writeValue(selector, value);
- *     // The write operation was successful...
- * } catch (error) {
- *     // Handle the error...
- * }
- */
 function validateInput(selector, value) {
     if (typeof selector !== 'string') {
         throw new Error('selector is not a string');
@@ -104,17 +78,14 @@ function checkReadOnly(valueDescription) {
     }
 }
 
-function checkDoubleBufferUsage(processDescription) {
-    if (processDescription.doubleBuffer) {
-        throw new Error('Value is inside a double buffer which is not allowed to write');
+function checkIfBufferIsWriteable(processDescription) {
+    if (getBufferType(processDescription) === 'doubleBuffer') {
+        throw new Error('Value is inside a doubleBuffer which is not allowed to write');
     }
-}
-
-function getBufferStartAddress(processDescription, buf, offsetManagementBuffer) {
-    const isDoubleBuffer = processDescription.doubleBuffer;
-    const singleSizeSharedMemory = processDescription.sizeOfSharedMemory;
-    const activeWriteBuffer = isDoubleBuffer ? buf.readUInt32LE(4) : 0;
-    return isDoubleBuffer ? offsetManagementBuffer + activeWriteBuffer * singleSizeSharedMemory : 0;
+    if (getBufferType(processDescription) === 'singleBufferSequenceLock') {
+        // @todo: check if this is correct
+        throw new Error('Value is inside a singleBufferSequenceLock which is *perhaps* not allowed to write');
+    }
 }
 
 async function writeValue(selector, value) {
@@ -125,19 +96,18 @@ async function writeValue(selector, value) {
     const selectorDescription = getObjectFromUrl(selector);
     const valueDescription = getNestedProcessValueDescription(processDescription, selectorDescription.parameterUrl);
 
+    // check if writing is possible
     checkReadOnly(valueDescription);
     checkInputValueType(value, valueDescription);
-    checkDoubleBufferUsage(processDescription);
+    checkIfBufferIsWriteable(processDescription);
 
-    // attach to shared memory
-    const offsetManagementBuffer = 12;
-    const memory = attachToSharedMemory(processDescription, offsetManagementBuffer);
-
-    // read the content of the shared memory
+    // attach to shared memory and read the content
+    const memory = attachToSharedMemory(processDescription);
     const dataBuffer = memory.buffer;
 
-    // write the value to the shared memory
-    const bufferStartAddress = getBufferStartAddress(processDescription, dataBuffer, offsetManagementBuffer);
+    // write the value based on type and description
+    const bufferStartAddress = getCurrentBufferStartAddress(processDescription, dataBuffer);
+    // @todo: handle write of different buffer types if not blocked by checkIfBufferIsWriteable()
     writeProcessValue(valueDescription, value, memory, bufferStartAddress);
 
     // write error code 0 after successfull writing
@@ -157,6 +127,7 @@ function writeErrorCodeToMetaData(valueDescription, memory, errorCode) {
         memory.write(metadataValue, offsetMetadata, sizeMetadata);
     }
 }
+
 /**
  * Writes the specified value to the shared memory based on the given value description.
  *
@@ -182,7 +153,11 @@ function writeErrorCodeToMetaData(valueDescription, memory, errorCode) {
  * writeProcessValue(valueDescription, value, memory, bufferStartAddress);
  */
 function writeProcessValue(valueDescription, value, memory, bufferStartAddress) {
-    const offsetValue = valueDescription.offsetSharedMemory;
+    const offsetOfValue = valueDescription.offsetSharedMemory;
+
+    if (bufferStartAddress + offsetOfValue >= memory.length) {
+        throw new Error(`Offset ${bufferStartAddress + offsetOfValue} for value is out of range for buffer of size ${memory.length}`);
+    }
 
     // Type map to determine size and write function for each data type.
     const typeMap = {
@@ -204,17 +179,18 @@ function writeProcessValue(valueDescription, value, memory, bufferStartAddress) 
     };
 
     const typeInfo = typeMap[valueDescription.type];
-
     if (typeInfo) {
         if (typeInfo.size) {
             if (typeInfo.writeFn === 'writeByte') {
+                //console.log(`WriteByte() ${value} startAddress: ${bufferStartAddress}, offset: ${offsetOfValue}, bitMask: ${valueDescription.bitMask}`);
                 // special handling for Bit
-                memory.writeByte(valueDescription.bitMask, value, bufferStartAddress + offsetValue);
+                memory.writeByte(valueDescription.bitMask, value, bufferStartAddress + offsetOfValue);
             } else {
                 // Allocate a buffer for the value and write it to the shared memory.
                 const buffer = Buffer.alloc(typeInfo.size);
                 buffer[typeInfo.writeFn](value);
-                memory.write(buffer, bufferStartAddress + offsetValue, typeInfo.size);
+                //console.log(`Writing ${value} startAddress: ${bufferStartAddress}, offset ${offsetOfValue} with size ${typeInfo.size}`);
+                memory.write(buffer, bufferStartAddress + offsetOfValue, typeInfo.size);
             }
         } else {
             throw new Error(`Unhandled value type: ${valueDescription.type}`);
@@ -223,6 +199,7 @@ function writeProcessValue(valueDescription, value, memory, bufferStartAddress) 
         throw new Error(`Unknown value type: ${valueDescription.type}`);
     }
 }
+
 /**
  * Checks whether the provided value is of the expected type based on the given value description.
  *

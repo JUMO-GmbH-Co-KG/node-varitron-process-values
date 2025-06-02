@@ -168,7 +168,6 @@ bool SystemVSemaphoreBaseClass::setSemaphoreOptions(const SemaphoreOptions semap
             }
             else
             {
-
                 std::cerr << "Error: " << strerror(errno) << " id: " << m_semaphoreId << " num: " << semaphoreOptions.sem_num << " op: " << semaphoreOptions.sem_op << " value: " << semctl(m_semaphoreId, semaphoreOptions.sem_num, GETVAL, 0) << std::endl;
             }
         }
@@ -176,6 +175,10 @@ bool SystemVSemaphoreBaseClass::setSemaphoreOptions(const SemaphoreOptions semap
         {
             returnValue = true;
         }
+    }
+    else
+    {
+        std::cerr << "Semaphore is not valid" << std::endl;
     }
     return returnValue;
 }

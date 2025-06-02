@@ -1,3 +1,4 @@
+import { versionFileExists } from './deviceVersion.js';
 import { getProcessDataDescription } from './providerHandler.js';
 import { write } from './writeProcessValues.js';
 
@@ -10,6 +11,12 @@ import { write } from './writeProcessValues.js';
  * @returns {Promise<void>} A promise that resolves when the flags are set.
  */
 const setPlcActiveFlags = async () => {
+    // the plcActive flags are only relevant for < v9
+    // skip this function for v9 and above
+    // if there is no /jupiter/VersionFile.ini version is >v8 
+    const needToSetFlag = versionFileExists();
+    if (!needToSetFlag) return;
+
     // get all existing PlcActive selectors
     const selectors = await getPlcActiveFlagSelectors();
 
@@ -50,16 +57,22 @@ const getPlcActiveFlagSelectors = async () => {
     const objectName = 'ProcessData';
     const instanceName = 'AnalogModuleOutput';
 
-    // Fetch ProcessDataDescription of EtherCatGateway via DBus
-    const processDescription = await getProcessDataDescription(
-        moduleName,
-        instanceName,
-        objectName,
-        'us_EN');
+    try {
+        // Fetch ProcessDataDescription of EtherCatGateway via DBus
+        const processDescription = await getProcessDataDescription(
+            moduleName,
+            instanceName,
+            objectName,
+            'us_EN');
 
-    // Find all selectors corresponding to the 'PlcActive' process value
-    const plcActiveSelectors = findAllMatchingSelectors(processDescription, { moduleName, instanceName, objectName }, []);
-    return plcActiveSelectors;
+        // Find all selectors corresponding to the 'PlcActive' process value
+        const plcActiveSelectors = findAllMatchingSelectors(processDescription, { moduleName, instanceName, objectName }, []);
+        return plcActiveSelectors;
+    } catch (error) {
+        console.log(`Error while fetching PlcActive selectors (fine for v9): ${error.message}`);
+    }
+
+    return [];
 };
 
 /**

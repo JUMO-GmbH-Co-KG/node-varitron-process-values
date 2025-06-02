@@ -47,7 +47,7 @@ async function getProcessValueProvidingModules() {
 
 /**
  * Retrieves a list of possible process values from all available modules of the JUMO variTRON system.
- * 
+ *
  * @returns {Promise<Array>} A promise that resolves to an array of modules and their associated process values.
  * @throws {Error} If there is an error retrieving the list of process values.
 */
@@ -58,40 +58,47 @@ export async function getList() {
         return getList.providerCache;
     }
 
+    let moduleList = [];
     try {
-        const moduleList = await getProcessValueProvidingModules();
+        moduleList = await getProcessValueProvidingModules();
+    } catch (e) {
+        throw new Error(`Unable to getProcessValueProvidingModules: ${e}`);
+    }
 
-        const providerList = [];
-        for (const module of moduleList) {
+    const providerList = [];
+    for (const module of moduleList) {
+        const result = [];
+        try {
             // get all instances of a module
             const instanceList = await getListOfInstances(module.moduleName, module.objectName, 'us_EN');
 
-            const result = [];
+            //result = [];
             for (const instance of instanceList) {
                 const activeInstances = await recursiveFindInstance(instance);
                 result.push(...activeInstances);
             }
-
-            // keep only modules with instances because we don't want to see modules without process values
-            if (result.length > 0) {
-                providerList.push({
-                    moduleName: module.moduleName,
-                    objectName: module.objectName,
-                    instances: result,
-                });
-            }
+        } catch (e) {
+            console.log(`Error while processing module ${module.moduleName}: ${e}`);
         }
-        getList.providerCache = providerList;
-        return providerList;
-    } catch (e) {
-        throw new Error(`Unable to getList: ${e}`);
+
+        // keep only modules with instances because we don't want to see modules without process values
+        if (result.length > 0) {
+            providerList.push({
+                moduleName: module.moduleName,
+                objectName: module.objectName,
+                instances: result,
+            });
+        }
     }
+    getList.providerCache = providerList;
+    return providerList;
 }
 
 // filter out modules and instances that should not be shown because they are invalid, useless or for internal use only
 const instanceBlocklist = [
     { moduleName: 'EtherCatGateway', instanceNameRegExp: /\d{6}\/\w+Selector/ },  // All instances of EtherCatGateway with a name like 705020/OutputSelector are not accessable
     { moduleName: 'EtherCatGateway', instanceNameRegExp: /Initialization$/ },     // Initialization are for internal use only
+    { moduleName: 'EtherCatGateway', instanceNameRegExp: /Initialization/ },      // Initialization are for internal use only (v9)
     { moduleName: 'RealTimeScheduler', instanceNameRegExp: /DebugData$/ },        // DebugData is for internal use only
     { moduleName: 'RealTimeScheduler', instanceNameRegExp: /ThreadData$/ },       // ThreadData is for internal use only
 ];
@@ -189,6 +196,9 @@ const leafObjectBlocklist = [
     { moduleName: 'EtherCatGateway', object: /Calib/ },               // Calib objects are for internal use only
     { moduleName: 'EtherCatGateway', object: /ErrorCode/ },           // ErrorCode objects are for internal use only
     { moduleName: 'EtherCatGateway', object: /Logentry/ },            // Logentry objects are for internal use only
+    { moduleName: 'EtherCatGateway', object: /NotUsed/ },             // NotUsed objects are not used (v9)
+    { moduleName: 'EtherCatGateway', object: /^1$/ },                 // Objects like 1 are for internal use only (v9)
+    { moduleName: 'EtherCatGateway', object: /^2$/ },                 // Objects like 2 are for internal use only (v9)
 ];
 
 /**
@@ -216,7 +226,8 @@ function recursiveFindLeafObjects(destination, source, description, objectPath) 
     }
 
     // leafs with 'offsetSharedMemory' property are process values but can contain internal data that should not be visible
-    // @todo: use 'selectorTypeListEndpoint' instead. problem: the outputs of ethercat modules have no 'selectorTypeListEndpoint' property. This will be coming in a future release.
+    // @todo: use 'selectorTypeListEndpoint' instead. problem: the outputs of ethercat modules have no
+    //        'selectorTypeListEndpoint' property. This will be coming probably in a future version of the variTRON.
     if (hasProperty(source, 'offsetSharedMemory')) {
         // pathName is the path to the element as a string, divided by '/'
         const pathName = objectPath.join('/');

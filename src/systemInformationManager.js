@@ -1,4 +1,5 @@
 import { dbusGateway } from './dbusGateway.js';
+
 /**
  * Invokes the System Information Manager D-Bus service with the specified method and parameters.
  *
@@ -19,6 +20,7 @@ async function systemInformationManager(method, params) {
     // Invoke the D-Bus gateway with the constructed service description.
     return dbusGateway(serviceDescription);
 }
+
 /**
  * Retrieves a list of registered providers based on the specified language and provider type.
  *
@@ -34,6 +36,7 @@ export async function getRegisteredProvidersList(language, providerType) {
     // Invoke the system information manager with the specified method and parameters.
     return systemInformationManager(method, params);
 }
+
 /**
  * Retrieves a list of instances for a specified module and object using D-Bus communication.
  *
@@ -47,7 +50,7 @@ export async function getListOfInstances(moduleName, objectName, language) {
     // Define the D-Bus method and parameters for retrieving instances.
     const method = 'getListOfInstances';
     const params = ['node-red', language];
-    // Construct the D-Bus service description.    
+    // Construct the D-Bus service description.
     const serviceDescription = {
         serviceName: moduleName,
         objectPath: '/' + objectName,

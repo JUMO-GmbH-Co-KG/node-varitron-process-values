@@ -89,7 +89,7 @@ SharedMemory::SharedMemory(const Napi::CallbackInfo &info)
 
     const off_t offset = 0;
     m_buffer = static_cast<char *>(mmap(0, m_size, PROT_READ | PROT_WRITE, MAP_SHARED, shmFileDescriptor, offset));
-    
+
     #ifdef DEBUG
     std::cout << "(native) buffer " << static_cast<void *>(buffer) << " " << errno << endl;
     #endif
@@ -184,7 +184,7 @@ void SharedMemory::writeByte(const Napi::CallbackInfo &info)
         Napi::RangeError::New(env, "Offset exceeds buffer size").ThrowAsJavaScriptException();
         return;
     }
-    
+
     unsigned int counter = 0;
     bool bRepetitionRequired = true;
     const unsigned int maxWriteRetries = 10;
