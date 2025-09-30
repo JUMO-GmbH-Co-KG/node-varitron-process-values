@@ -30,8 +30,8 @@ export function getProcessDataDescriptionBuffer(moduleName, instanceName, object
 
 /**
  * checks if the system version is at least 9
- * @param {*} cpveVersion the version of the CPVE out of the process description
- * @returns {boolean} true if the system version is at least 9
+ * @param {*} cpveVersion - the version of the CPVE out of the process description
+ * @returns {boolean} - true if the system version is at least 9
  */
 function isSystemVersionAtLeast9(cpveVersion) {
     // "cpveVersion": "419.8.0.0.20"
@@ -43,7 +43,7 @@ function isSystemVersionAtLeast9(cpveVersion) {
 
 /**
  * Get the buffer type out of the process description and respects the different buffer types between v8 and v9
- * @param {*} processDescription the process description
+ * @param {*} processDescription - the process description
  * @returns buffer type as string (singleBufferSemaphore, singleBufferSequenceLock, doubleBuffer)
  */
 export function getBufferType(processDescription) {
@@ -61,7 +61,7 @@ export function getBufferType(processDescription) {
 
 /**
  * Get the size of the management buffer for the different buffer types
- * @param {*} bufferType the buffer type
+ * @param {*} bufferType - the buffer type
  * @returns the size of the management buffer
  */
 export function getSizeOfManagementBuffer(bufferType) {
@@ -98,6 +98,13 @@ export function getSizeOfManagementBuffer(bufferType) {
     }
 }
 
+/**
+ * Calculate the size of the complete shared memory including management buffer and offset
+ * @param {*} bufferType - the type of the buffer
+ * @param {*} sizeOfSingleSharedMemory - the size of the single shared memory
+ * @param {*} offsetSharedMemory - the offset of the shared memory
+ * @returns the size of the complete shared memory
+ */
 function calculateSharedMemorySize(bufferType, sizeOfSingleSharedMemory, offsetSharedMemory) {
     // some buffer types have a management buffer at the beginning of the shared memory
     const sizeOfManagementBuffer = getSizeOfManagementBuffer(bufferType);
@@ -108,6 +115,12 @@ function calculateSharedMemorySize(bufferType, sizeOfSingleSharedMemory, offsetS
     return offsetSharedMemory + sizeOfManagementBuffer + (sizeOfSingleSharedMemory * (bufferType === 'doubleBuffer' ? 2 : 1));
 }
 
+/**
+ * Get the start address of the current buffer
+ * @param {*} processDescription - the process description
+ * @param {*} buf - the buffer
+ * @returns the start address of the current buffer
+ */
 export function getCurrentBufferStartAddress(processDescription, buf) {
     // the buffer start address is the part behind the management buffer WITHOUT the offsetSharedMemory, because the offsetSharedMemory is already included
     // in the offset of the process values.
@@ -120,54 +133,78 @@ export function getCurrentBufferStartAddress(processDescription, buf) {
         // get the active read buffer out of the management buffer (0 or 1)
         const activeReadBuffer = buf.readUInt32LE(0);
         const startAddress = sizeOfManagementBuffer + (activeReadBuffer * sizeOfSingleSharedMemory);
-        //console.log(`getCurrentBufferStartAddress() activeReadBuffer: ${activeReadBuffer}, startAddress: ${startAddress}`);
         return startAddress;
     }
     const startAddress = sizeOfManagementBuffer;
-    //console.log(`getCurrentBufferStartAddress() startAddress: ${startAddress}`);
     return startAddress;
 }
 
+/**
+ * Attaches to a shared memory segment based on the provided process description.
+ * Caches shared memory objects to avoid redundant attachments.
+ *
+ * @param {Object} processDescription - The process description containing details for shared memory attachment.
+ * @returns {Object} - The attached shared memory object.
+ *
+ * @description
+ * This function checks if a shared memory object with the same key and offset already exists in the cache.
+ * If it does, it returns the cached object. Otherwise, it creates a new shared memory object, stores it in the cache,
+ * and then returns the new object.
+ */
 export function attachToSharedMemory(processDescription) {
     // create cache for shared memory objects if not already existing
-
-    // disable cache for now because we using different slices of the shared memory with the same key and we need to create a new object for each slice.
-    // @todo: implement a cache that can handle multiple shared memory objects with the same key (e.g. by using a map with shmKey + offset as key)
-    attachToSharedMemory.cache = undefined;
     if (typeof attachToSharedMemory.cache === 'undefined') {
         attachToSharedMemory.cache = new Map();
     }
 
     const sharedMemoryKey = processDescription.key;
     const shmKey = sharedMemoryKey + 'SharedMemory';
+    const offsetSharedMemory = processDescription.offsetSharedMemory || 0;
 
+    // create a unique cache key based on the shared memory key and offset, because we can have multiple shared
+    // memory segments with the same key but different offsets
+    const cacheKey = `${shmKey}_${offsetSharedMemory}`;
+
+    // if we have the same shared memory key and offset, we can reuse the existing shared memory object
+    if (attachToSharedMemory.cache.has(cacheKey)) {
+        return attachToSharedMemory.cache.get(cacheKey);
+    }
+
+    // create new shared memory object and store it in the cache
+    const newMemory = createSharedMemoryObject(processDescription, sharedMemoryKey, shmKey, offsetSharedMemory);
+    attachToSharedMemory.cache.set(cacheKey, newMemory);
+    return newMemory;
+}
+
+/**
+ * Creates a new shared memory object.
+ * @param {*} processDescription - The process description containing details for shared memory creation.
+ * @param {*} sharedMemoryKey - The key for the shared memory.
+ * @param {*} shmKey - The shared memory key.
+ * @param {*} offsetSharedMemory - The offset for the shared memory.
+ * @returns {*} - The created shared memory object.
+ */
+function createSharedMemoryObject(processDescription, sharedMemoryKey, shmKey, offsetSharedMemory) {
     // v8:
-    // has processDescription.doubleBuffer that selects the buffer type
+    //   has processDescription.doubleBuffer that selects the buffer type
     // v9:
-    // has NO processDescription.doubleBuffer
-    // if it is no double buffer, it has NO processDescription.doubleBuffer but processDescription.bufferType
-    // valid buffer types are: 'singleBufferSemaphore', 'singleBufferSequenceLock', 'doubleBuffer
-    return attachToSharedMemory.cache.get(shmKey) || (() => {
-        const bufferType = getBufferType(processDescription);
-        const isDoubleBuffer = bufferType === 'doubleBuffer';
-        const sizeOfSingleSharedMemory = processDescription.sizeOfSharedMemory;
+    //   has NO processDescription.doubleBuffer
+    //   if it is no double buffer, it has NO processDescription.doubleBuffer but processDescription.bufferType
+    //   valid buffer types are: 'singleBufferSemaphore', 'singleBufferSequenceLock', 'doubleBuffer'
+    const bufferType = getBufferType(processDescription);
+    const isDoubleBuffer = bufferType === 'doubleBuffer';
+    const sizeOfSingleSharedMemory = processDescription.sizeOfSharedMemory;
 
-        // since v9 the buffer is sliced into parts. to get the correct part we need to calculate the offset. in v8 the offset is therefor always 0.
-        const offsetSharedMemory = processDescription.offsetSharedMemory || 0;
+    // calculate the size of the complete shared memory
+    const completeSizeSharedMemory = calculateSharedMemorySize(bufferType, sizeOfSingleSharedMemory, offsetSharedMemory);
 
-        // calculate the size of the complete shared memory
-        const completeSizeSharedMemory = calculateSharedMemorySize(bufferType, sizeOfSingleSharedMemory, offsetSharedMemory);
+    // @todo: do we need this for the 'singleBufferSequenceLock' buffer type?
+    const semaphoreKey = `${sharedMemoryKey}Semaphore${isDoubleBuffer ? 'WriteLock' : 'BufferLock'}`;
 
-        // @todo: do we need this for the 'singleBufferSequenceLock' buffer type?
-        const semaphoreKey = `${sharedMemoryKey}Semaphore${isDoubleBuffer ? 'WriteLock' : 'BufferLock'}`;
+    // creationType = attachToExistingLock = 0 - we always attach to an existing lock
+    const creationType = 0;
 
-        // creationType = attachToExistingLock = 0 - we always attach to an existing lock
-        const creationType = 0;
+    //console.log(`attachToSharedMemory() ${shmKey}, bufferType: ${processDescription.bufferType}, singleSize: ${sizeOfSingleSharedMemory}, offsetSharedMemory: ${offsetSharedMemory}`);
 
-        //console.log(`attachToSharedMemory() ${shmKey}, bufferType: ${processDescription.bufferType}, singleSize: ${sizeOfSingleSharedMemory}, offsetSharedMemory: ${offsetSharedMemory}`);
-
-        const newMemory = new native.SharedMemory(shmKey, completeSizeSharedMemory, isDoubleBuffer, semaphoreKey, creationType);
-        attachToSharedMemory.cache.set(shmKey, newMemory);
-        return newMemory;
-    })();
+    return new native.SharedMemory(shmKey, completeSizeSharedMemory, isDoubleBuffer, semaphoreKey, creationType);
 }

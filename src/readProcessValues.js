@@ -75,7 +75,6 @@ async function readValue(selector) {
     // until now only one measurement range is supported
     const measurementRangeIndex = 0;
     const measurementRange = valueDescription.measurementRangeAttributes?.[measurementRangeIndex];
-
     // use POSIX language for unit because this is always available
     const unit = measurementRange?.unitText?.POSIX || '';
 

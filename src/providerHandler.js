@@ -52,7 +52,7 @@ export async function getProcessDataDescription(moduleName, instanceName, object
 
 /**
  * Retrieves the process data description based on the given selector.
- * 
+ *
  * @param {string} selector - The selector used to retrieve the process data description.
  * @returns {Promise<Object>} - A promise that resolves to the process data description.
  */
