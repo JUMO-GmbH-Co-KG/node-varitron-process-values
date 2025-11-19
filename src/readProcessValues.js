@@ -48,7 +48,6 @@ function validateSelector(selector) {
  * @returns {Promise<Object>} - A promise that resolves with an object containing information read from the specified URL.
  * @throws {Error} - Throws an error if there's an issue with input validation, D-Bus communication, or shared memory operations.
  */
-// eslint-disable-next-line max-statements
 async function readValue(selector) {
     validateSelector(selector);
 

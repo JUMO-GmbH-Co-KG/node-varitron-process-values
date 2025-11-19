@@ -488,7 +488,7 @@ describe('getList function', async function () {
             // console log should contain an error message
             const logContainsError = this.consoleLogOutput.filter(log => log.includes('some error'));
             assert.isNotEmpty(logContainsError, 'Expected console log to contain error message');
-        } catch (error) {
+        } catch {
             assert.fail('Don\'t expected an error to be thrown');
         }
     });
@@ -506,7 +506,7 @@ describe('getList function', async function () {
             // console log should contain an error message
             const logContainsError = this.consoleLogOutput.filter(log => log.includes('some error'));
             assert.isNotEmpty(logContainsError, 'Expected console log to contain error message');
-        } catch (error) {
+        } catch {
             assert.fail('Don\'t expected an error to be thrown');
         }
     });
