@@ -1,6 +1,6 @@
 {
   "name": "@jumo.net/varitron-process-values",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "description": "Node.js module to browse, read and write JUMO variTRON process values.",
   "main": "index.js",
   "type": "module",
@@ -37,9 +37,9 @@
   },
   "overrides": {
     "@quadratclown/dbus-next": {
-        "usocket": {
-          "usocket": "1.0.2"
-        }
+      "usocket": {
+        "usocket": "1.0.2"
+      }
     }
   },
   "directories": {
