@@ -1,18 +1,33 @@
 import * as td from 'testdouble';
-import { expect } from 'chai';
-import { assert } from 'chai';
+import { expect, assert } from 'chai';
 
 describe('getList function', async function () {
+    let consoleLogOutput = [];
+    let originalConsoleLog;
+
     beforeEach(async function () {
         //replace individual in every test
         this.systemInformationManager = await td.replaceEsm('../src/systemInformationManager.js');
         this.providerHandler = await td.replaceEsm('../src/providerHandler.js');
 
         this.subject = await import('../src/browseProcessValues.js');
+
+        // Stub console.log and capture output
+        consoleLogOutput = [];
+        originalConsoleLog = console.log;
+        console.log = function (...args) {
+            consoleLogOutput.push(args.join(' '));
+        };
+        this.consoleLogOutput = consoleLogOutput;
     });
 
     afterEach(function () {
         td.reset(); // Reset test doubles after each test
+        // Restore console.log
+        if (originalConsoleLog) {
+            console.log = originalConsoleLog;
+        }
+        consoleLogOutput = [];
     });
 
     it('should resolve with provider list', async function () {
@@ -466,10 +481,15 @@ describe('getList function', async function () {
         td.when(this.providerHandler.getProcessDataDescription('Module1', 'Instance1', 'Object1', 'us_EN')).thenResolve({ someData: 'description' });
 
         try {
-            await this.subject.getList();
-            assert.fail('Expected an error to be thrown');
+            const list = await this.subject.getList();
+            // list should be empty because getListOfInstances failed
+            assert.isEmpty(list, 'Expected list to be empty because getListOfInstances failed');
+
+            // console log should contain an error message
+            const logContainsError = this.consoleLogOutput.filter(log => log.includes('some error'));
+            assert.isNotEmpty(logContainsError, 'Expected console log to contain error message');
         } catch (error) {
-            assert.include(error.message, 'some error', 'Error message should match');
+            assert.fail('Don\'t expected an error to be thrown');
         }
     });
 
@@ -479,10 +499,15 @@ describe('getList function', async function () {
         td.when(this.providerHandler.getProcessDataDescription('Module1', 'Instance1', 'Object1', 'us_EN')).thenReject('some error');
 
         try {
-            await this.subject.getList();
-            assert.fail('Expected an error to be thrown');
+            const list = await this.subject.getList();
+            // list should be empty because getProcessDataDescription failed
+            assert.isEmpty(list, 'Expected list to be empty because getProcessDataDescription failed');
+
+            // console log should contain an error message
+            const logContainsError = this.consoleLogOutput.filter(log => log.includes('some error'));
+            assert.isNotEmpty(logContainsError, 'Expected console log to contain error message');
         } catch (error) {
-            assert.include(error.message, 'some error', 'Error message should match');
+            assert.fail('Don\'t expected an error to be thrown');
         }
     });
 });
