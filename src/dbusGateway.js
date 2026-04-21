@@ -1,4 +1,4 @@
-import dbus from '@quadratclown/dbus-next';
+import dbus from '@homebridge/dbus-native';
 import { parse } from './dbusReply.js';
 
 const dBusServicePrefix = 'de.jupiter.';
@@ -75,21 +75,51 @@ export async function dbusGateway(serviceDescription) {
     const bus = getBus();
 
     try {
-        // Obtain a D-Bus proxy object based on the service description.
-        const obj = await bus.getProxyObject(description.servicePrefix + description.serviceName, description.objectPath);
-        const iface = obj.getInterface(description.interfaceName);
+        // Obtain a D-Bus interface via callback-based API, wrapped in a Promise.
+        const iface = await new Promise((resolve, reject) => {
+            bus.getService(description.servicePrefix + description.serviceName)
+                .getInterface(description.objectPath, description.interfaceName, (err, iface) => {
+                    if (err) {
+                        reject(new Error(err.message || String(err)));
+                    } else {
+                        resolve(iface);
+                    }
+                });
+        });
 
-        // Check if the specified method is a function.
+        // Check if the interface exists
+        if (!iface) {
+            throw new Error(
+                `No interface found ${description.interfaceName} at ${description.objectPath}`
+            );
+        }
+
+        // Check if the method exists
+        if (!description.method || description.method.length === 0) {
+            throw new Error(
+                `No method specified in call to ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}`
+            );
+        }
+
+        // Check if the method is a function
         if (typeof iface[description.method] !== 'function') {
             throw new Error(
                 `No function '${description.method}' in ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}`
             );
         }
 
-        // Invoke the specified D-Bus method with the provided parameters.
-        const response = await iface[description.method](...description.params);
+        // Invoke the specified D-Bus method with the provided parameters, wrapped in a Promise.
+        const response = await new Promise((resolve, reject) => {
+            iface[description.method](...description.params, (err, response) => {
+                if (err) {
+                    reject(new Error(`Error calling function '${description.method}' in ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}: ${err.message}`));
+                } else {
+                    resolve(response);
+                }
+            });
+        });
 
-        bus.disconnect();
+        bus.connection.end();
         staticDBusReference = null;
         return parse(response);
     } catch (err) {
@@ -98,3 +128,4 @@ export async function dbusGateway(serviceDescription) {
         );
     }
 }
+

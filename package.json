@@ -28,19 +28,12 @@
     "eslint-plugin-security": "^3.0.1",
     "globals": "^16.5.0",
     "mocha": "^11.7.5",
-    "node-gyp": "^12.1.0",
+    "node-gyp": "^12.2.0",
     "testdouble": "^3.20.2"
   },
   "dependencies": {
-    "@quadratclown/dbus-next": "^1.0.2",
-    "node-addon-api": "^8.5.0"
-  },
-  "overrides": {
-    "@quadratclown/dbus-next": {
-      "usocket": {
-        "usocket": "1.0.2"
-      }
-    }
+    "@homebridge/dbus-native": "0.7.3",
+    "node-addon-api": "8.6.0"
   },
   "directories": {
     "example": "example",

@@ -26,7 +26,12 @@ export function formatData(data) {
     if (typeof data === 'string') {
         // return a string as a parsed object or array if it starts with { or [
         if (data.match(/^\s*(\{.*\}|\[.*\])\s*$/gs)) {
-            return JSON.parse(data);
+            try {
+                const parsedData = JSON.parse(data);
+                return parsedData;
+            } catch (error) {
+                throw new SyntaxError('function formatData: Invalid JSON string');
+            }
         }
     }
     // Handle cases where data is an object or array.
@@ -36,16 +41,55 @@ export function formatData(data) {
     // For any other data type, wrap it in an array to ensure a valid JSON object.
     return [data];
 }
+
+
+
+/**
+ * Parses a D-Bus inner item and extracts its type and value.
+ *
+ * @param {*} item - The inner item to parse.
+ * @returns {Object|null} - An object containing the type and value, or null if the item is invalid.
+ */
+const parseInnerItem = (item) => {
+    // an item contains an array of two items:
+    // 0: the dbus description of the value, witch is an array with one obejct as element containing the type and the child
+    // 1: an array with the actual value
+    if (Array.isArray(item) && item.length === 2) {
+        const dbusDescription = item[0];
+        const value = item[1];
+
+        if (Array.isArray(dbusDescription) && dbusDescription.length === 1 && typeof dbusDescription[0] === 'object' && Array.isArray(value)) {
+            const type = dbusDescription[0].type; // the type of the value, e.g. 's' for string, 'b' for boolean, etc.
+            if (type === 's') {
+                // string
+                return { type: 'string', value: value[0] };
+            } else if (type === 'b') {
+                // boolean
+                return { type: 'boolean', value: value[0] };
+            } else if (type === 'i') {
+                // integer
+                return { type: 'integer', value: value[0] };
+            } else if (type === 'a') {
+                // array
+                return { type: 'array', value: value[0] };
+            }
+        }
+    }
+    return null; // invalid item format
+};
+
+
 /**
  * Parses the result of a Jupiter D-Bus response and handles error conditions.
  *
- * @param {Object} result - The raw result object received from a Jupiter D-Bus response.
+ * @param {Array} result - The raw result array received from a Jupiter D-Bus response.
+ *   result = [ errCode, errText, <data> ]
  * @returns {Array|Object|undefined} - The parsed and formatted data, or undefined if the result is not as expected.
  * @throws {Error} - Throws an error if the Jupiter D-Bus response indicates an error (errCode !== 0).
  *
  * @description
- * This function is designed to handle Jupiter D-Bus response objects with the following structure:
- * result.value = [ errCode, errText, <data> ]
+ * This function is designed to handle Jupiter D-Bus response arrays with the following structure:
+ * result = [ errCode, errText, <data> ]
  * If errCode is not 0, indicating an error, an error message is thrown.
  * If the response is as expected, the data is extracted and formatted using the formatData function.
  *
@@ -58,19 +102,28 @@ export function formatData(data) {
  *     // Handle the error...
  * }
  */
-export function parse(result) {
-    // Check if the result and result.value exist.
-    if (result && result.value) {
-        // Extract the error code from the Jupiter D-Bus response. result.value = [ errCode, errText, <data> ].
-        const errorCode = result.value[0].value;
-
-        // If the error code is not 0, indicating an error, throw an error with the error code and text.
-        if (errorCode !== 0) {
-            const errorText = result.value[1].value;
-            throw new Error(`${errorCode}: ${errorText}`);
+export function parse(message) {
+    if (Array.isArray(message) && message.length > 1) {
+        // message[0]   unwichtiger Muell
+        const result = message[1];
+        // the result is an array of one item which contain an array of Three items, those items are:
+        // 0: error code (0 for success)
+        // 1: error message (empty for success)
+        // 2: the actual result
+        if (Array.isArray(result) && result.length > 0) {
+            if (Array.isArray(result[0]) && result[0].length === 3) {
+                const errorCode = parseInnerItem(result[0][0]);
+                const errorMessage = parseInnerItem(result[0][1]);
+                const actualResult = parseInnerItem(result[0][2]);
+                // If the error code is not 0, indicating an error, throw an error with the error code and text.
+                if (errorCode.value !== 0) {
+                    console.log(`Error code: ${errorCode.value}`);
+                    throw new Error(`${errorCode.value}: ${errorMessage.value}`);
+                }
+                // If the response is as expected, extract and format the data using the formatData function.
+                return formatData(actualResult.value);
+            }
         }
-        // If the response is as expected, extract and format the data using the formatData function.
-        return formatData(result.value[2].value);
     }
     // Return undefined if the result is not as expected.
     return undefined;
