@@ -99,13 +99,25 @@ async function readValue(selector) {
  * @param {number} value - The actual value extracted from the shared memory buffer.
  * @returns {number | null} - The extracted error code or null if no error code is found.
  */
+// eslint-disable-next-line max-statements
 function getErrorCodeFromMetaData(valueDescription, buf, bufferStartAddress, value) {
     // Calculate the offset for metadata within the shared memory buffer.
     const offsetMetadata = valueDescription.offsetSharedMemory + valueDescription.relativeOffsetMetadata;
+    const supportedSizeMetaData = 8; // standard case: metadata containing a 32-bit error code and a 32-bit state
+    const reducedSizeMetaData = 3; // reduced size of metadata containing 1 byte for error and 2 bytes for state
+    const legacySizeMetaData = 4; // legacy case: Only Error code as 32-bit integer without state information (Jupiter Version < 9)
 
     let metadata;
-    if (valueDescription.sizeMetadata == 4) {
-        // Standard case: metadata containing a 32-bit error code.
+    if (valueDescription.sizeMetadata == supportedSizeMetaData) {
+        // Standard case: metadata containing a 32-bit error code and a 32-bit state (ignoring the state for now)
+        metadata = buf.readUInt32LE(offsetMetadata + bufferStartAddress);
+    } else if (valueDescription.sizeMetadata == reducedSizeMetaData) {
+        // Reduced size metadata containing 1 byte for error and 2 bytes for state (ignoring the state for now)
+        const error = buf.readUInt8(offsetMetadata + bufferStartAddress);
+        //const state = buf.readUInt16LE(offsetMetadata + bufferStartAddress + 1);
+        metadata = error;
+    } else if (valueDescription.sizeMetadata == legacySizeMetaData) {
+        // Legacy case: metadata containing a 32-bit error code without state information (Jupiter Version < 9)
         metadata = buf.readUInt32LE(offsetMetadata + bufferStartAddress);
     } else if (valueDescription.sizeMetadata == 0) {
         // Case where metadata contains no error code.
@@ -119,7 +131,7 @@ function getErrorCodeFromMetaData(valueDescription, buf, bufferStartAddress, val
         }
     } else {
         // unknown metadata content
-        metadata = null;
+        throw new Error(`READ: Unsupported metadata size: ${valueDescription.sizeMetadata}. Only sizes of ${supportedSizeMetaData}, ${reducedSizeMetaData}, ${legacySizeMetaData} and 0 are supported.`);
     }
     return metadata;
 }

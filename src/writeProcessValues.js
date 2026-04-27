@@ -118,10 +118,22 @@ async function writeValue(selector, value) {
 function writeErrorCodeToMetaData(valueDescription, memory, errorCode) {
     const offsetMetadata = valueDescription.offsetSharedMemory + valueDescription.relativeOffsetMetadata;
     const sizeMetadata = valueDescription.sizeMetadata;
+    const supportedSizeMetaData = 8; // standard case: metadata containing a 32-bit error code and a 32-bit state
+    const reducedSizeMetaData = 3; // reduced size of metadata containing 1 byte for error and 2 bytes for state
+    const legacySizeMetaData = 4; // legacy case: Only Error code as 32-bit integer without state information (Jupiter Version < 9)
 
-    // Only 4-byte metadata is supported.
-    if (sizeMetadata === 4) {
-        // Allocate a buffer for the metadata and write the error code.
+    if (sizeMetadata === supportedSizeMetaData) {
+        // For standard metadata, write the error code as a 32-bit integer and set state to 0 (ignoring state for now).
+        const metadataValue = Buffer.alloc(8); // 8 bytes for error code and state (ignoring state for now)
+        metadataValue.writeInt32LE(errorCode);
+        metadataValue.writeInt32LE(0, 4); // Write state (4 bytes) as 0, ignoring state for now
+        memory.write(metadataValue, offsetMetadata, sizeMetadata);
+    } else if (sizeMetadata === reducedSizeMetaData) {
+        // For reduced size metadata, write the error code as a single byte and set state to 0.
+        memory.writeUInt8(errorCode, offsetMetadata); // Write error code (1 byte)
+        memory.writeUInt16LE(0, offsetMetadata + 1); // Write state (2 bytes) as 0
+    } else if (sizeMetadata === legacySizeMetaData) {
+        // For legacy size metadata, write the error code as a 32-bit integer without state information.
         const metadataValue = Buffer.alloc(4);
         metadataValue.writeInt32LE(errorCode);
         memory.write(metadataValue, offsetMetadata, sizeMetadata);
