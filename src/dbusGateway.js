@@ -124,7 +124,8 @@ export async function dbusGateway(serviceDescription) {
         return parse(response);
     } catch (err) {
         throw new Error(
-            `Selector not found. ${err.message} @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`
+            `Selector not found. ${err.message} @ ${description.servicePrefix + description.serviceName}, ${description.objectPath}, ${description.interfaceName}, ${description.method}(${description.params})`,
+            { cause: err }
         );
     }
 }

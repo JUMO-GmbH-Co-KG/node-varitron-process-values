@@ -30,7 +30,7 @@ export function formatData(data) {
                 const parsedData = JSON.parse(data);
                 return parsedData;
             } catch (error) {
-                throw new SyntaxError('function formatData: Invalid JSON string');
+                throw new SyntaxError('function formatData: Invalid JSON string', { cause: error });
             }
         }
     }
@@ -41,7 +41,6 @@ export function formatData(data) {
     // For any other data type, wrap it in an array to ensure a valid JSON object.
     return [data];
 }
-
 
 
 /**

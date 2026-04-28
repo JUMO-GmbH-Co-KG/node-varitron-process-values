@@ -40,7 +40,7 @@ async function getProcessValueProvidingModules() {
             modules.push({ 'moduleName': provider.moduleName, 'objectName': provider.objectName });
         }
     } catch (e) {
-        throw new Error(`Can't get provider list: ${e}`);
+        throw new Error(`Can't get provider list: ${e}`, { cause: e });
     }
     return modules;
 }
@@ -58,11 +58,11 @@ export async function getList() {
         return getList.providerCache;
     }
 
-    let moduleList = [];
+    let moduleList;
     try {
         moduleList = await getProcessValueProvidingModules();
     } catch (e) {
-        throw new Error(`Unable to getProcessValueProvidingModules: ${e}`);
+        throw new Error(`Unable to getProcessValueProvidingModules: ${e}`, { cause: e });
     }
 
     const providerList = [];
@@ -167,7 +167,7 @@ async function recursiveFindInstance(instance) {
         }
     } catch (error) {
         const errMsg = `Can't get ProcessDataDescription for module: ${moduleName},  instance: ${instanceName}, object: ${objectName}: ${error}`;
-        throw new Error(errMsg);
+        throw new Error(errMsg, { cause: error });
     }
 }
 
